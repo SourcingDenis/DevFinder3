@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/Button';
-import { Download, Loader2 } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { GitHubUser, UserSearchParams } from '@/types';
-import { convertToCSV, downloadCSV } from '@/lib/csv-utils';
+import { exportUsersToCSV } from '@/lib/csv-utils';
 import { fetchAllUsers } from '@/lib/github-api';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -12,33 +12,27 @@ interface ExportButtonProps {
   disabled?: boolean;
 }
 
-export function ExportButton({ currentUsers, searchParams, disabled }: ExportButtonProps) {
-  const [isExporting, setIsExporting] = useState(false);
+export const ExportButton: React.FC<ExportButtonProps> = ({ 
+  currentUsers, 
+  searchParams, 
+  disabled 
+}) => {
   const { user } = useAuth();
+  const [isExporting, setIsExporting] = React.useState(false);
 
-  const handleExport = async () => {
+  const handleExport = React.useCallback(async () => {
     if (!user) return;
-    
-    if (!searchParams) {
-      // If no search has been performed, export current page only
-      const csvContent = convertToCSV(currentUsers);
-      const timestamp = new Date().toISOString().split('T')[0];
-      downloadCSV(csvContent, `github-users-${timestamp}.csv`);
-      return;
-    }
 
     setIsExporting(true);
     try {
-      const allUsers = await fetchAllUsers(searchParams);
-      const csvContent = convertToCSV(allUsers);
-      const timestamp = new Date().toISOString().split('T')[0];
-      downloadCSV(csvContent, `github-users-${timestamp}.csv`);
-    } catch (error: unknown) {
-      console.error('Error exporting users:', error instanceof Error ? error.message : String(error));
+      const usersToExport = searchParams ? await fetchAllUsers(searchParams) : currentUsers;
+      await exportUsersToCSV(usersToExport);
+    } catch (error) {
+      console.error('Export failed', error);
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [user, searchParams, currentUsers]);
 
   return (
     <Button
@@ -46,15 +40,10 @@ export function ExportButton({ currentUsers, searchParams, disabled }: ExportBut
       size="sm"
       onClick={handleExport}
       disabled={!user || disabled || isExporting || currentUsers.length === 0}
-      title={!user ? "Sign in to export results" : "Export to CSV"}
       className="flex items-center gap-2"
     >
-      {isExporting ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Download className="h-4 w-4" />
-      )}
       {isExporting ? 'Exporting...' : 'Export to CSV'}
+      <Download className="h-4 w-4" />
     </Button>
   );
-}
+};

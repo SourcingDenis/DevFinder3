@@ -35,24 +35,33 @@ function App() {
           {!hasSearched && !user && activeTab === 'search' && <Hero />}
           <main className="container max-w-screen-2xl py-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground mb-6">
-                <TabsTrigger value="search" className="rounded-md px-3 py-1 text-sm font-medium">
+              <TabsList className="inline-flex h-10 items-center space-x-1 rounded-none border-b border-border/40 bg-transparent p-0">
+                <TabsTrigger 
+                  value="search" 
+                  className="inline-flex items-center justify-center whitespace-nowrap border-b-2 border-transparent px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground"
+                >
                   Search
                 </TabsTrigger>
-                <TabsTrigger value="saved-profiles" className="rounded-md px-3 py-1 text-sm font-medium">
+                <TabsTrigger 
+                  value="saved-profiles" 
+                  className="inline-flex items-center justify-center whitespace-nowrap border-b-2 border-transparent px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground"
+                >
                   Saved Profiles
                 </TabsTrigger>
-                <TabsTrigger value="saved-searches" className="rounded-md px-3 py-1 text-sm font-medium">
+                <TabsTrigger 
+                  value="saved-searches" 
+                  className="inline-flex items-center justify-center whitespace-nowrap border-b-2 border-transparent px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground"
+                >
                   Saved Searches
                 </TabsTrigger>
               </TabsList>
-              <TabsContent value="search" className="mt-0">
+              <TabsContent value="search" className="mt-6">
                 <SearchContainer onSearch={handleSearch} />
               </TabsContent>
-              <TabsContent value="saved-profiles" className="mt-0">
+              <TabsContent value="saved-profiles" className="mt-6">
                 <SavedProfiles />
               </TabsContent>
-              <TabsContent value="saved-searches" className="mt-0">
+              <TabsContent value="saved-searches" className="mt-6">
                 <SavedSearches />
               </TabsContent>
             </Tabs>

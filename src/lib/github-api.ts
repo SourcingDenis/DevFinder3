@@ -1,17 +1,22 @@
 import axios from 'axios';
 import { UserSearchParams, GitHubUser, SearchResponse } from '@/types';
-import { API_ENDPOINTS } from '@/config/constants';
 import { supabase } from './supabase';
 
 const getGithubApi = async () => {
   const { data: { session } } = await supabase.auth.getSession();
-  const provider_token = session?.provider_token;
   
+  // Add more robust token checking
+  if (!session?.provider_token) {
+    console.error('No GitHub token available. Please re-authenticate.');
+    throw new Error('No GitHub token available');
+  }
+
   return axios.create({
-    baseURL: API_ENDPOINTS.GITHUB_API,
-    headers: provider_token ? {
-      Authorization: `Bearer ${provider_token}`
-    } : {}
+    baseURL: 'https://api.github.com',
+    headers: {
+      Authorization: `Bearer ${session.provider_token}`,
+      Accept: 'application/vnd.github.v3+json'
+    }
   });
 };
 
@@ -104,47 +109,25 @@ export async function findUserEmail(username: string): Promise<string | null> {
   try {
     const githubApi = await getGithubApi();
     
-    // First, try to get the email from the user's public events
+    // Fetch user's events to find an email
     const eventsResponse = await githubApi.get(`/users/${username}/events/public`);
     const events = eventsResponse.data;
-    
-    // Look for push events which might contain commit information
+
+    // Look for PushEvent which might contain commit email
     for (const event of events) {
-      if (event.type === 'PushEvent' && event.payload?.commits?.length > 0) {
-        const commitSha = event.payload.commits[0].sha;
-        const repoName = event.repo.name;
-        
-        // Get the commit details which might contain the author's email
-        const commitResponse = await githubApi.get(`/repos/${repoName}/commits/${commitSha}`);
-        const email = commitResponse.data?.commit?.author?.email;
-        
-        if (email && !email.includes('users.noreply.github.com')) {
-          return email;
+      if (event.type === 'PushEvent' && event.payload.commits) {
+        const commit = event.payload.commits[0];
+        if (commit.author && commit.author.email) {
+          return commit.author.email;
         }
       }
     }
-    
-    // If no email found in events, try repositories
-    const reposResponse = await githubApi.get(`/users/${username}/repos`, {
-      params: { sort: 'pushed', per_page: 5 }
-    });
-    
-    for (const repo of reposResponse.data) {
-      const commitsResponse = await githubApi.get(`/repos/${repo.full_name}/commits`, {
-        params: { author: username, per_page: 1 }
-      });
-      
-      if (commitsResponse.data.length > 0) {
-        const email = commitsResponse.data[0]?.commit?.author?.email;
-        if (email && !email.includes('users.noreply.github.com')) {
-          return email;
-        }
-      }
-    }
-    
-    return null;
+
+    // If no email found in events, try user's profile
+    const userResponse = await githubApi.get(`/users/${username}`);
+    return userResponse.data.email || null;
   } catch (error) {
-    console.error('Error finding user email:', error);
+    console.error(`Error finding email for user ${username}:`, error);
     return null;
   }
 }
