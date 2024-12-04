@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Mail, Loader2, Copy, Check } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { findUserEmail } from '@/lib/github-api';
 import { cn } from '@/lib/utils';
 

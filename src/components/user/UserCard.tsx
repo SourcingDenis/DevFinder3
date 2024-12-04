@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { GitHubUser } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { UserStats } from './UserStats';
 import { LanguageBadge } from './LanguageBadge';
 import { SaveProfileButton } from './SaveProfileButton';

@@ -1,6 +1,6 @@
 import { useState, KeyboardEvent, FormEvent, ChangeEvent } from 'react';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { LocationTags } from '@/components/search/LocationTags';
 import { Search } from 'lucide-react';
 import type { UserSearchParams } from '@/types';

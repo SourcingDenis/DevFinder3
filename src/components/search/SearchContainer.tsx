@@ -9,10 +9,10 @@ import { SortOptions, type SortOption } from '@/components/search/SortOptions';
 import { SignInPrompt } from '@/components/search/SignInPrompt';
 import { useAuth } from '@/components/auth/AuthProvider';
 import type { GitHubUser, UserSearchParams } from '@/types';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/Dialog';
-import { Input } from '@/components/ui/Input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { useSearchParams } from 'react-router-dom';
 
 interface SearchContainerProps {

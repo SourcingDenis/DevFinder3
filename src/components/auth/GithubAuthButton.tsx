@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Github } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 

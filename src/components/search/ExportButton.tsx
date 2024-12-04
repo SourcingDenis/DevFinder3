@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { GitHubUser, UserSearchParams } from '@/types';
 import { exportUsersToCSV } from '@/lib/csv-utils';
