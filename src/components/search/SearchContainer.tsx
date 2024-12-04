@@ -138,10 +138,6 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     }
   };
 
-  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // No implementation
-  };
-
   const showSignInPrompt = !user && currentPage >= 3 && users.length > 0;
   const totalPages = Math.min(Math.ceil(totalResults / 10), 100); // GitHub API limits to 1000 results
 

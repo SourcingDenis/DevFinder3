@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { UserCard } from '../user/UserCard';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { LoadingSpinner } from '../ui/loading-spinner';
 import type { GitHubUser } from '@/types';
 
 interface SavedProfile {

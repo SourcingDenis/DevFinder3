@@ -20,7 +20,7 @@ export function Header() {
         </div>
         <nav className="flex items-center gap-4">
           <ThemeToggle />
-          <AuthButton className="text-sm" />
+          <AuthButton />
         </nav>
       </div>
     </header>

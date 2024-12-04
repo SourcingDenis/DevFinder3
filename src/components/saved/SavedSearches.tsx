@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { Button } from '../ui/Button';
+import { LoadingSpinner } from '../ui/loading-spinner';
+import { Button } from '../ui/button';
 import { useNavigate } from 'react-router-dom';
 import type { UserSearchParams } from '@/types';
 
