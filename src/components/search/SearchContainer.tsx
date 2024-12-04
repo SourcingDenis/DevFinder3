@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { SearchForm } from '@/components/search/SearchForm';
 import { UserList } from '@/components/user/UserList';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { searchUsers } from '@/lib/github-api';
 import { Pagination } from '@/components/pagination/Pagination';
 import { ExportButton } from '@/components/search/ExportButton';
@@ -136,6 +136,10 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // No implementation
   };
 
   const showSignInPrompt = !user && currentPage >= 3 && users.length > 0;

@@ -1,4 +1,5 @@
 import { Input } from '@/components/ui/input';
+import React from 'react';
 
 interface SearchInputProps {
   value: string;
@@ -8,11 +9,15 @@ interface SearchInputProps {
 }
 
 export function SearchInput({ value, onChange, placeholder, className }: SearchInputProps) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value);
+  };
+
   return (
     <Input
       placeholder={placeholder}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={handleChange}
       className={className}
     />
   );

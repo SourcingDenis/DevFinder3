@@ -28,7 +28,7 @@ export function SearchForm({ onSearch }: SearchFormProps) {
         <Input
           placeholder="Search GitHub users..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
           className="w-full"
         />
       </div>
@@ -36,12 +36,12 @@ export function SearchForm({ onSearch }: SearchFormProps) {
         <Input
           placeholder="Programming language"
           value={language}
-          onChange={(e) => setLanguage(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguage(e.target.value)}
         />
         <Input
           placeholder="Location"
           value={location}
-          onChange={(e) => setLocation(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocation(e.target.value)}
         />
       </div>
       <Button type="submit" className="w-full">
