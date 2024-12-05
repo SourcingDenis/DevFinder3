@@ -18,7 +18,6 @@ export function SearchForm({ onSearch }: SearchFormProps) {
   const [locations, setLocations] = useState<string[]>(
     searchParams.get('locations')?.split(',').filter(Boolean) || []
   );
-  const [hireable, setHireable] = useState(searchParams.get('hireable') === 'true');
 
   const handleLocationKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && locationInput.trim()) {
@@ -28,7 +27,7 @@ export function SearchForm({ onSearch }: SearchFormProps) {
         const newLocations = [...locations, newLocation];
         setLocations(newLocations);
         setLocationInput('');
-        handleSearch(query, language, newLocations, hireable);
+        handleSearch(query, language, newLocations);
       }
     }
   };
@@ -36,27 +35,25 @@ export function SearchForm({ onSearch }: SearchFormProps) {
   const handleRemoveLocation = (locationToRemove: string): void => {
     const newLocations = locations.filter((loc: string): boolean => loc !== locationToRemove);
     setLocations(newLocations);
-    handleSearch(query, language, newLocations, hireable);
+    handleSearch(query, language, newLocations);
   };
 
   const handleSearch = (
     currentQuery: string,
     currentLanguage: string,
-    currentLocations: string[],
-    currentHireable: boolean
+    currentLocations: string[]
   ): void => {
     if (!currentQuery.trim()) return;
     onSearch({
       query: currentQuery.trim(),
       language: currentLanguage,
-      locations: currentLocations,
-      hireable: currentHireable
+      locations: currentLocations
     });
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    handleSearch(query, language, locations, hireable);
+    handleSearch(query, language, locations);
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
