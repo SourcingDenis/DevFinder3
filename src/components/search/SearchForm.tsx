@@ -57,12 +57,23 @@ export function SearchForm({ onSearch }: SearchFormProps) {
     currentLanguage: string,
     currentLocations: string[]
   ): void => {
-    if (!currentQuery.trim()) return;
-    onSearch({
-      query: currentQuery.trim(),
-      language: currentLanguage,
-      locations: currentLocations
-    });
+    const searchParams: Partial<UserSearchParams> = {};
+    
+    if (currentQuery.trim()) {
+      searchParams.query = currentQuery.trim();
+    }
+    
+    if (currentLanguage) {
+      searchParams.language = currentLanguage;
+    }
+    
+    if (currentLocations.length > 0) {
+      searchParams.locations = currentLocations;
+    }
+
+    if (Object.keys(searchParams).length > 0) {
+      onSearch(searchParams as Omit<UserSearchParams, 'page'>);
+    }
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
@@ -90,7 +101,6 @@ export function SearchForm({ onSearch }: SearchFormProps) {
           value={query}
           onChange={handleInputChange}
           className="pl-10 h-12"
-          required
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

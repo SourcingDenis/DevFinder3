@@ -64,7 +64,7 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     }
   }, [searchParams]);
 
-  const handleSearch = async (params: Omit<UserSearchParams, 'page'>) => {
+  const handleSearch = async (params: Partial<Omit<UserSearchParams, 'page'>>) => {
     setIsLoading(true);
     setError(null);
     setCurrentPage(1);
@@ -79,7 +79,7 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     setLastSearchParams(searchParams);
     
     try {
-      // Save the search to recent_searches if user is logged in
+      // Save the search to recent_searches if user is logged in and query exists
       if (user && params.query) {
         await supabase
           .from('recent_searches')
@@ -91,10 +91,24 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
           .select();
       }
 
+      // Build search query string based on available parameters
+      let searchQuery = '';
+      if (params.query) {
+        searchQuery += params.query;
+      }
+      if (params.language) {
+        searchQuery += ` language:${params.language}`;
+      }
+      if (params.locations?.length) {
+        searchQuery += ` ${params.locations.map(loc => `location:${loc}`).join(' ')}`;
+      }
+
       const results = await searchUsers({ 
         ...searchParams,
+        query: searchQuery.trim(),
         page: 1
       });
+      
       setUsers(results.items);
       setTotalResults(results.total_count);
     } catch (err) {
