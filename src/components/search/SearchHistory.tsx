@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Clock, Search, ArrowRight } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import type { UserSearchParams } from '@/types';
 
 interface SearchHistoryProps {
@@ -20,7 +20,6 @@ interface RecentSearch {
 
 export function SearchHistory({ onSearch }: SearchHistoryProps) {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [, setSearchParams] = useSearchParams();
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
 
@@ -135,7 +134,7 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
                 <div className="font-medium text-left truncate">{search.query}</div>
                 <div className="text-xs text-muted-foreground space-x-2">
                   <span>{formatTimeAgo(search.created_at)}</span>
-                  {search.search_params.locations?.length > 0 && (
+                  {search.search_params.locations && search.search_params.locations.length > 0 && (
                     <span>• Location: {search.search_params.locations.join(', ')}</span>
                   )}
                   {search.search_params.language && (
