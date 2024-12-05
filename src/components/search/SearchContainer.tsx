@@ -70,10 +70,27 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     setCurrentPage(1);
     onSearch?.();
     
-    const searchParams = {
-      ...params,
+    // Build search query string based on available parameters
+    let searchQuery = '';
+    if (params.query) {
+      searchQuery += params.query;
+    }
+    if (params.language) {
+      searchQuery += ` language:${params.language}`;
+    }
+    if (params.locations?.length) {
+      searchQuery += ` ${params.locations.map(loc => `location:${loc}`).join(' ')}`;
+    }
+
+    // Ensure we have at least an empty string for query if none provided
+    const searchParams: Omit<UserSearchParams, 'page'> = {
+      query: searchQuery.trim() || ' ', // Default to space to avoid empty query
       sort: params.sort || currentSort.value,
-      order: params.order || currentSort.direction
+      order: params.order || currentSort.direction,
+      locations: params.locations,
+      language: params.language,
+      per_page: params.per_page,
+      hireable: params.hireable
     };
     
     setLastSearchParams(searchParams);
@@ -91,21 +108,8 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
           .select();
       }
 
-      // Build search query string based on available parameters
-      let searchQuery = '';
-      if (params.query) {
-        searchQuery += params.query;
-      }
-      if (params.language) {
-        searchQuery += ` language:${params.language}`;
-      }
-      if (params.locations?.length) {
-        searchQuery += ` ${params.locations.map(loc => `location:${loc}`).join(' ')}`;
-      }
-
       const results = await searchUsers({ 
         ...searchParams,
-        query: searchQuery.trim(),
         page: 1
       });
       
