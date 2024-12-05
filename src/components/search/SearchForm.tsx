@@ -28,7 +28,7 @@ export function SearchForm({ onSearch }: SearchFormProps) {
         const newLocations = [...locations, newLocation];
         setLocations(newLocations);
         setLocationInput('');
-        handleSearch(query, language, newLocations);
+        handleSearch(query, language, newLocations, hireable);
       }
     }
   };
@@ -36,26 +36,27 @@ export function SearchForm({ onSearch }: SearchFormProps) {
   const handleRemoveLocation = (locationToRemove: string): void => {
     const newLocations = locations.filter((loc: string): boolean => loc !== locationToRemove);
     setLocations(newLocations);
-    handleSearch(query, language, newLocations);
+    handleSearch(query, language, newLocations, hireable);
   };
 
   const handleSearch = (
     currentQuery: string,
     currentLanguage: string,
-    currentLocations: string[]
+    currentLocations: string[],
+    currentHireable: boolean
   ): void => {
     if (!currentQuery.trim()) return;
     onSearch({
       query: currentQuery.trim(),
       language: currentLanguage,
       locations: currentLocations,
-      hireable
+      hireable: currentHireable
     });
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    handleSearch(query, language, locations);
+    handleSearch(query, language, locations, hireable);
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -65,8 +66,6 @@ export function SearchForm({ onSearch }: SearchFormProps) {
       setLanguage(e.target.value);
     } else if (e.target.id === 'location') {
       setLocationInput(e.target.value);
-    } else if (e.target.id === 'hireable') {
-      setHireable(e.target.checked);
     }
   };
 
@@ -105,18 +104,6 @@ export function SearchForm({ onSearch }: SearchFormProps) {
             onRemove={handleRemoveLocation}
           />
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <input
-          id="hireable"
-          type="checkbox"
-          checked={hireable}
-          onChange={handleInputChange}
-          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-        />
-        <label htmlFor="hireable" className="text-sm text-muted-foreground">
-          Only show users available for hire
-        </label>
       </div>
       <Button type="submit" className="w-full h-10">
         Search Users

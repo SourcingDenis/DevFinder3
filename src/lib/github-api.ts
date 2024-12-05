@@ -27,12 +27,6 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
     // Ensure there's a valid search query
     let searchQuery = params.query || 'type:user';
     if (params.language) searchQuery += ` language:${params.language}`;
-    if (params.locations?.length) {
-      searchQuery += ` ${params.locations.map(loc => `location:${loc}`).join(' ')}`;
-    }
-    if (params.hireable) {
-      searchQuery += ` is:hireable`;
-    }
 
     const response = await githubApi.get<SearchResponse>('/search/users', {
       params: {
@@ -70,16 +64,14 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
 
         return {
           ...userDetails,
+          hireable: userDetails.hireable,
           topLanguage
         };
       })
     );
 
-    // Filter users based on hireable status if specified
-    const filteredUsers = params.hireable ? users.filter(user => user.hireable) : users;
-
     return {
-      items: filteredUsers,
+      items: users,
       total_count: response.data.total_count
     };
   } catch (error) {
