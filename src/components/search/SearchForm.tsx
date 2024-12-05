@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent, FormEvent, ChangeEvent } from 'react';
+import { useState, KeyboardEvent, FormEvent, ChangeEvent, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { LocationTags } from '@/components/search/LocationTags';
@@ -18,6 +18,20 @@ export function SearchForm({ onSearch }: SearchFormProps) {
   const [locations, setLocations] = useState<string[]>(
     searchParams.get('locations')?.split(',').filter(Boolean) || []
   );
+
+  useEffect(() => {
+    const urlQuery = searchParams.get('query');
+    const urlLanguage = searchParams.get('language');
+    const urlLocations = searchParams.get('locations')?.split(',').filter(Boolean) || [];
+
+    if (urlQuery) setQuery(urlQuery);
+    if (urlLanguage) setLanguage(urlLanguage);
+    setLocations(urlLocations);
+
+    if (urlQuery) {
+      handleSearch(urlQuery, urlLanguage || '', urlLocations);
+    }
+  }, [searchParams]);
 
   const handleLocationKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && locationInput.trim()) {

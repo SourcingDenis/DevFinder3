@@ -27,6 +27,7 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
     // Ensure there's a valid search query
     let searchQuery = params.query || 'type:user';
     if (params.language) searchQuery += ` language:${params.language}`;
+    if (params.locations?.length) searchQuery += ` location:${params.locations.join(' location:')}`;
 
     const response = await githubApi.get<SearchResponse>('/search/users', {
       params: {

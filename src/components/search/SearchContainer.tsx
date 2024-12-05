@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useSearchParams } from 'react-router-dom';
+import { SearchHistory } from '@/components/search/SearchHistory';
 
 interface SearchContainerProps {
   onSearch?: () => void;
@@ -71,13 +72,25 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     
     const searchParams = {
       ...params,
-      sort: currentSort.value,
-      order: currentSort.direction
+      sort: params.sort || currentSort.value,
+      order: params.order || currentSort.direction
     };
     
     setLastSearchParams(searchParams);
     
     try {
+      // Save the search to recent_searches if user is logged in
+      if (user && params.query) {
+        await supabase
+          .from('recent_searches')
+          .insert({
+            user_id: user.id,
+            query: params.query,
+            search_params: searchParams
+          })
+          .select();
+      }
+
       const results = await searchUsers({ 
         ...searchParams,
         page: 1
@@ -148,6 +161,16 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
       {error && (
         <div className="text-red-500 text-center p-4 bg-red-50 rounded-md">
           {error}
+        </div>
+      )}
+      
+      {!isLoading && users.length === 0 && user && (
+        <div className="mt-4">
+          <SearchHistory onSearch={() => {
+            setUsers([]);
+            setIsLoading(true);
+            onSearch?.();
+          }} />
         </div>
       )}
       

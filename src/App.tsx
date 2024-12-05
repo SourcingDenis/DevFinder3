@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header';
 import { Hero } from '@/components/layout/Hero';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocation } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
 
 function App() {
   const [activeTab, setActiveTab] = useState('search');
@@ -32,7 +33,7 @@ function App() {
       <AuthProvider>
         <div className="min-h-screen bg-background">
           <Header />
-          {!hasSearched && !user && activeTab === 'search' && <Hero />}
+          {!hasSearched && !user && <Hero />}
           <main className="container max-w-screen-2xl py-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="inline-flex h-10 items-center space-x-1 rounded-none border-b border-border/40 bg-transparent p-0">
@@ -55,17 +56,21 @@ function App() {
                   Saved Searches
                 </TabsTrigger>
               </TabsList>
+
               <TabsContent value="search" className="mt-6">
                 <SearchContainer onSearch={handleSearch} />
               </TabsContent>
+
               <TabsContent value="saved-profiles" className="mt-6">
                 <SavedProfiles />
               </TabsContent>
+
               <TabsContent value="saved-searches" className="mt-6">
                 <SavedSearches />
               </TabsContent>
             </Tabs>
           </main>
+          <Toaster />
         </div>
       </AuthProvider>
     </ThemeProvider>
