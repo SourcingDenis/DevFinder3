@@ -1,11 +1,14 @@
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { AuthButton } from '../auth/AuthButton';
-import { Code2 } from 'lucide-react';
+import { Code2, Settings } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 export function Header() {
   const navigate = useNavigate();
   const [, setSearchParams] = useSearchParams();
+  const { user } = useAuth();
 
   const handleLogoClick = () => {
     // First navigate to home
@@ -28,6 +31,17 @@ export function Header() {
         </div>
         <nav className="flex items-center gap-4">
           <ThemeToggle />
+          {user && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/settings')}
+              className="rounded-full"
+            >
+              <Settings className="h-5 w-5" />
+              <span className="sr-only">Settings</span>
+            </Button>
+          )}
           <AuthButton />
         </nav>
       </div>
