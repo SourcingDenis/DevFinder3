@@ -9,12 +9,14 @@ interface SaveProfileButtonProps {
   user: GitHubUser;
   isSaved?: boolean;
   onSaveToggle?: (saved: boolean) => void;
+  onRemoveSaved?: () => void;
 }
 
 export function SaveProfileButton({ 
   user, 
   isSaved = false, 
-  onSaveToggle 
+  onSaveToggle,
+  onRemoveSaved 
 }: SaveProfileButtonProps) {
   const { user: authUser } = useAuth();
   const [saved, setSaved] = useState(isSaved);
@@ -50,8 +52,8 @@ export function SaveProfileButton({
 
   const handleSave = async () => {
     if (!authUser) return;
-    
     setIsLoading(true);
+
     try {
       if (saved) {
         // Remove from saved profiles
@@ -64,6 +66,7 @@ export function SaveProfileButton({
         if (error) throw error;
         setSaved(false);
         onSaveToggle?.(false);
+        onRemoveSaved?.();
       } else {
         // Add to saved profiles
         const { error } = await supabase
@@ -79,14 +82,7 @@ export function SaveProfileButton({
         onSaveToggle?.(true);
       }
     } catch (error) {
-      console.error('Error saving profile:', {
-        error,
-        userId: authUser.id,
-        githubUsername: user.login,
-        action: saved ? 'delete' : 'insert'
-      });
-      // Re-throw the error to trigger error boundaries if they exist
-      throw error;
+      console.error('Error toggling save status:', error);
     } finally {
       setIsLoading(false);
     }

@@ -11,11 +11,8 @@ interface UserCardProps {
 }
 
 export function UserCard({ user, isSaved, onRemoveSaved }: UserCardProps) {
-  const languages = user.languages || {};
-  const topLanguages = Object.entries(languages)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 3)
-    .map(([lang]) => lang);
+  const languages = user.languages || [];
+  const topLanguages = languages.slice(0, 3);
 
   return (
     <Card className="p-6">

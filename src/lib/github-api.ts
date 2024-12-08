@@ -29,7 +29,12 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
   const githubApi = await getGithubApi();
   
   // Construct the search query
-  let q = params.query || '';
+  let q = '';
+  
+  // Add main search query
+  if (params.query || params.q) {
+    q += (params.query || params.q);
+  }
   
   // Add language filter if specified
   if (params.language) {
@@ -49,7 +54,7 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
     q += ` followers:<=${params.followersMax}`;
   }
 
-  // Add repositories range if specified
+  // Add repos range if specified
   if (params.reposMin) {
     q += ` repos:>=${params.reposMin}`;
   }
@@ -57,32 +62,43 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
     q += ` repos:<=${params.reposMax}`;
   }
 
+  // Add hireable filter if specified
+  if (params.hireable) {
+    q += ' is:hireable';
+  }
+
+  const searchParams = {
+    q,
+    sort: params.sort,
+    order: params.order,
+    per_page: params.per_page || 30,
+    page: params.page || 1
+  };
+
   try {
-    const response = await githubApi.get('/search/users', {
-      params: {
-        q,
-        sort: params.sort || 'best-match',
-        order: params.order || 'desc',
-        per_page: params.per_page || 30,
-        page: params.page || 1
-      }
+    const response = await githubApi.get<SearchResponse<GitHubUser>>('/search/users', {
+      params: searchParams
     });
 
-    const users = await Promise.all(
-      response.data.items.map(async (user: any) => {
-        // Fetch detailed user information
-        const userDetailsResponse = await githubApi.get(`/users/${user.login}`);
-        return {
-          ...userDetailsResponse.data,
-          score: user.score
-        };
+    // Transform the response to include additional user details
+    const enrichedUsers = await Promise.all(
+      response.data.items.map(async (user) => {
+        try {
+          const { data: details } = await githubApi.get<GitHubUser>(`/users/${user.login}`);
+          return {
+            ...details,
+            languages: details.languages || []
+          };
+        } catch (error) {
+          console.error(`Error fetching details for user ${user.login}:`, error);
+          return user;
+        }
       })
     );
 
     return {
-      items: users,
-      total_count: response.data.total_count,
-      incomplete_results: response.data.incomplete_results
+      ...response.data,
+      items: enrichedUsers
     };
   } catch (error) {
     console.error('Error searching users:', error);

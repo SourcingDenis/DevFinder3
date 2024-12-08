@@ -17,16 +17,26 @@ export interface GitHubUser {
   following: number;
   created_at: string;
   updated_at: string;
+  languages?: string[];
+  topLanguage?: string | null;
+  available_for_hire?: boolean;
 }
 
 export interface UserSearchParams {
   q: string;
+  query?: string;
   location?: string;
+  locations?: string[];
   language?: string;
   sort?: 'followers' | 'repositories' | 'joined';
   order?: 'asc' | 'desc';
   page?: number;
   per_page?: number;
+  hireable?: boolean;
+  followersMin?: number;
+  followersMax?: number;
+  reposMin?: number;
+  reposMax?: number;
 }
 
 export interface SavedProfile {

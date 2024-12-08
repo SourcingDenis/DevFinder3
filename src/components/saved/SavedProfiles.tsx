@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { UserCard } from '../user/UserCard';
 import { LoadingSpinner } from '../ui/loading-spinner';
-import type { GitHubUser } from '@/types';
+import type { GitHubUser } from '@/types/github';
 
 interface SavedProfile {
   id: number;
@@ -48,7 +47,14 @@ export function SavedProfiles() {
         id: profile.id,
         user_id: profile.user_id,
         github_username: profile.github_username,
-        github_data: profile.github_data,
+        github_data: {
+          ...profile.github_data,
+          public_gists: profile.github_data.public_gists || 0,
+          updated_at: profile.github_data.updated_at || profile.github_data.created_at,
+          languages: profile.github_data.languages || [],
+          topLanguage: profile.github_data.topLanguage || null,
+          available_for_hire: profile.github_data.available_for_hire || false
+        } as GitHubUser,
         created_at: profile.created_at,
       })));
     } catch (error) {
@@ -93,9 +99,7 @@ export function SavedProfiles() {
       {profiles.map((profile) => (
         <UserCard 
           key={profile.id} 
-          user={{
-            ...profile.github_data,
-          }} 
+          user={profile.github_data}
           isSaved={true} 
           onRemoveSaved={() => handleProfileRemove(profile.github_username)}
         />

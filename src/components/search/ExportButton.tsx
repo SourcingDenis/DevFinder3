@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
-import { GitHubUser, UserSearchParams } from '@/types';
+import { GitHubUser, UserSearchParams } from '@/types/github';
 import { exportUsersToCSV } from '@/lib/csv-utils';
 import { fetchAllUsers } from '@/lib/github-api';
 import { useAuth } from '../auth/AuthProvider';
@@ -28,8 +28,8 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
     const parts: string[] = [];
 
     // Add query if exists
-    if (searchParams.query) {
-      parts.push(searchParams.query.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase());
+    if (searchParams.query || searchParams.q) {
+      parts.push((searchParams.query || searchParams.q).replace(/[^a-zA-Z0-9]/g, '_').toLowerCase());
     }
 
     // Add language if specified
@@ -51,46 +51,46 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
 
     setIsExporting(true);
     try {
-      const usersToExport = searchParams ? await fetchAllUsers(searchParams) : currentUsers;
-      
-      // Generate dynamic filename
-      const filename = generateFilename();
+      let usersToExport = currentUsers;
 
-      // Add progress tracking
-      await exportUsersToCSV(usersToExport, {
-        onProgress: (progress) => {
-          console.log(`Export progress: ${progress}%`);
-        },
-        filename // Pass filename to export function
-      });
+      // If we have search params, fetch all users for the current search
+      if (searchParams) {
+        const allUsers = await fetchAllUsers({
+          ...searchParams,
+          q: searchParams.query || searchParams.q || '',
+        });
+        usersToExport = allUsers;
+      }
+
+      // Export users to CSV
+      const filename = generateFilename();
+      await exportUsersToCSV(usersToExport, filename);
 
       toast({
-        title: 'Export Successful',
-        description: `Exported ${usersToExport.length} users to ${filename}`,
-        variant: 'default'
+        title: 'Export successful',
+        description: `Users have been exported to ${filename}`,
       });
     } catch (error) {
-      console.error('Export failed', error);
+      console.error('Export failed:', error);
       toast({
-        title: 'Export Failed',
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: 'destructive'
+        title: 'Export failed',
+        description: 'An error occurred while exporting users.',
+        variant: 'destructive',
       });
     } finally {
       setIsExporting(false);
     }
-  }, [user, searchParams, currentUsers, toast, generateFilename]);
+  }, [currentUsers, searchParams, user, generateFilename, toast]);
 
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={handleExport}
-      disabled={!user || disabled || isExporting || currentUsers.length === 0}
-      className="flex items-center gap-2"
+      disabled={disabled || isExporting || !user}
     >
-      {isExporting ? 'Exporting...' : 'Export to CSV'}
-      <Download className="h-4 w-4" />
+      <Download className="h-4 w-4 mr-2" />
+      {isExporting ? 'Exporting...' : 'Export'}
     </Button>
   );
 };

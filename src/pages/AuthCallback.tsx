@@ -62,24 +62,26 @@ export function AuthCallback() {
         if (tokenError) {
           console.error('Error storing tokens:', tokenError);
           toast({
-            title: 'Warning',
-            description: 'Authenticated successfully but had trouble saving credentials.',
-            variant: 'warning'
+            title: 'Token Storage Error',
+            description: 'Failed to store authentication tokens.',
+            variant: 'destructive'
           });
-        } else {
-          toast({
-            title: 'Success',
-            description: 'Successfully connected your Gmail account.',
-            variant: 'default'
-          });
+          navigate('/');
+          return;
         }
 
-        // Redirect to the main app
-        navigate('/');
-      } catch (error) {
-        console.error('Error in auth callback:', error);
+        // Success! Redirect to the app
         toast({
-          title: 'Error',
+          title: 'Successfully Authenticated',
+          description: 'You can now use all features of the app.',
+          variant: 'default'
+        });
+        navigate('/');
+
+      } catch (error) {
+        console.error('Callback error:', error);
+        toast({
+          title: 'Authentication Error',
           description: 'An unexpected error occurred. Please try again.',
           variant: 'destructive'
         });
@@ -93,8 +95,8 @@ export function AuthCallback() {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="text-center">
-        <h2 className="text-xl font-semibold mb-2">Completing authentication...</h2>
-        <p className="text-muted-foreground">Please wait while we set up your account.</p>
+        <h2 className="text-2xl font-semibold mb-4">Completing Authentication...</h2>
+        <p className="text-muted-foreground">Please wait while we finish setting up your account.</p>
       </div>
     </div>
   );

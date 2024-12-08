@@ -1,15 +1,16 @@
-import { GitHubUser } from '@/types';
-import { UserCard } from './UserCard';
+import type { GitHubUser } from '@/types/github';
+import { UserCard } from '@/components/user/UserCard';
 
 interface UserListProps {
   users: GitHubUser[];
+  searchExecuted?: boolean;
 }
 
-export function UserList({ users }: UserListProps) {
-  if (users.length === 0) {
+export function UserList({ users, searchExecuted }: UserListProps) {
+  if (users.length === 0 && searchExecuted) {
     return (
-      <div className="text-center text-muted-foreground py-8">
-        No users found. Try adjusting your search criteria.
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No users found</p>
       </div>
     );
   }
