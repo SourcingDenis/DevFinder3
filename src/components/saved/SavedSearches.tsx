@@ -52,7 +52,7 @@ export function SavedSearches() {
     if (searchParams.per_page) queryString.append('per_page', String(searchParams.per_page));
     if (typeof searchParams.hireable === 'boolean') queryString.append('hireable', String(searchParams.hireable));
     
-    navigate(`/?${queryString.toString()}`);
+    navigate(`/search?${queryString.toString()}`);
   };
 
   const handleDeleteSearch = async (id: number) => {
@@ -91,7 +91,6 @@ export function SavedSearches() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold mb-4">Saved Searches</h2>
       {searches.map((search) => (
         <div
           key={search.id}

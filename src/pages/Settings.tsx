@@ -24,35 +24,28 @@ export function Settings() {
   }
 
   return (
-    <div className="container max-w-2xl py-8">
-      <h1 className="text-3xl font-bold tracking-tight mb-6">Settings</h1>
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Settings</h1>
       
-      <Card>
-        <CardContent className="p-6">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold mb-4">Account Information</h2>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <User className="h-4 w-4" />
-                  <span>Signed in as {user.email}</span>
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                <User className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                <div>
+                  <p className="font-medium break-all">{user.email}</p>
+                  <p className="text-sm text-gray-500">Supabase Account</p>
                 </div>
               </div>
-            </div>
-
-            <div className="pt-4 border-t">
-              <Button
-                variant="destructive"
-                onClick={handleLogout}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="h-4 w-4" />
+              <Button variant="destructive" onClick={handleLogout} className="w-full sm:w-auto">
+                <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

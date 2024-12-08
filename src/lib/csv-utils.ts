@@ -1,18 +1,9 @@
 import { GitHubUser } from '@/types';
 
-function guessEmail(user: GitHubUser): string {
-  // Only guess if no public email is available
-  if (user.email) {
-    return user.email;
-  }
-  
-  // Create a guess using username@gmail.com
-  return `${user.login}@gmail.com`;
-}
-
 export interface CSVExportOptions {
   onProgress?: (progress: number) => void;
   chunkSize?: number;
+  filename?: string;
 }
 
 export async function convertToCSV(
@@ -27,8 +18,6 @@ export async function convertToCSV(
   const headers = [
     'Username',
     'Name',
-    'Email',
-    'Email Guess',
     'Bio',
     'Location',
     'Company',
@@ -44,42 +33,46 @@ export async function convertToCSV(
   // Process users in chunks to allow progress updates
   const processedRows: string[][] = [];
   
-  for (let i = 0; i < users.length; i += chunkSize) {
-    const chunk = users.slice(i, i + chunkSize);
-    
-    const chunkRows = chunk.map(user => [
-      String(user.login),
-      String(user.name || ''),
-      String(user.email || ''),
-      guessEmail(user),
-      String(user.bio || '').replace(/"/g, '""'), // Escape quotes in CSV
-      String(user.location || ''),
-      String(user.company || ''),
-      String(user.blog || ''),
-      String(user.public_repos),
-      String(user.followers),
-      String(user.following),
-      new Date(user.created_at).toLocaleDateString(),
-      String(user.html_url),
-      String(user.topLanguage || '')
-    ]);
+  try {
+    for (let i = 0; i < users.length; i += chunkSize) {
+      const chunk = users.slice(i, i + chunkSize);
+      
+      const chunkRows = chunk.map(user => [
+        String(user.login),
+        String(user.name || ''),
+        String(user.bio || '').replace(/"/g, '""'), // Escape quotes in CSV
+        String(user.location || ''),
+        String(user.company || ''),
+        String(user.blog || ''),
+        String(user.public_repos),
+        String(user.followers),
+        String(user.following),
+        new Date(user.created_at).toLocaleDateString(),
+        String(user.html_url),
+        String(user.topLanguage || '')
+      ]);
 
-    processedRows.push(...chunkRows);
+      processedRows.push(...chunkRows);
 
-    // Update progress
-    const progress = Math.min(100, Math.round((i + chunk.length) / users.length * 100));
-    onProgress(progress);
+      // Update progress
+      const progress = Math.min(100, Math.round((i + chunk.length) / users.length * 100));
+      onProgress(progress);
 
-    // Allow UI to update
-    await new Promise(resolve => setTimeout(resolve, 0));
+      // Allow UI to update and prevent blocking
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    const csvContent = [
+      headers.join(','),
+      ...processedRows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    return csvContent;
+  } catch (error) {
+    console.error('Error converting users to CSV:', error);
+    onProgress(100); // Ensure progress callback is called even on error
+    throw error; // Rethrow to allow caller to handle
   }
-
-  const csvContent = [
-    headers.join(','),
-    ...processedRows.map(row => row.map(cell => `"${cell}"`).join(','))
-  ].join('\n');
-
-  return csvContent;
 }
 
 export function downloadCSV(
@@ -97,13 +90,50 @@ export function downloadCSV(
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  
+  // Revoke the URL to free up memory
+  URL.revokeObjectURL(url);
 }
 
-// Async wrapper for CSV export with progress tracking
 export async function exportUsersToCSV(
   users: GitHubUser[], 
   options: CSVExportOptions = {}
 ): Promise<void> {
-  const csvContent = await convertToCSV(users, options);
-  downloadCSV(csvContent);
+  const { 
+    onProgress = () => {}, 
+    chunkSize = 50,
+    filename = 'github_users.csv'
+  } = options;
+
+  try {
+    // Validate input
+    if (!users || users.length === 0) {
+      throw new Error('No users to export');
+    }
+
+    // Track overall progress
+    const progressTracker = (progress: number) => {
+      console.log(`Export progress: ${progress}%`);
+      onProgress(progress);
+    };
+
+    const csvContent = await convertToCSV(users, { 
+      ...options, 
+      onProgress: progressTracker 
+    });
+
+    // Validate CSV content
+    if (!csvContent || csvContent.trim().length === 0) {
+      throw new Error('Generated CSV is empty');
+    }
+
+    // Download CSV with custom filename
+    downloadCSV(csvContent, filename);
+  } catch (error) {
+    console.error('CSV export failed:', error);
+    
+    // Provide user-friendly error handling
+    onProgress(100); // Ensure progress is completed
+    throw new Error(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }

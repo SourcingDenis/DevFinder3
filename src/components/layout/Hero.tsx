@@ -1,4 +1,4 @@
-import { Search, Users, Download, BookmarkCheck } from 'lucide-react';
+import { Search, Users, Download, BookmarkCheck, Github } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const features = [
@@ -48,18 +48,26 @@ export function Hero() {
       
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(var(--primary-rgb),0.1)_0%,transparent_65%)]" />
 
-      <div className="container relative max-w-screen-2xl z-10">
+      <div className="relative w-full z-10 px-4">
         <div className="flex flex-col items-center text-center py-16 md:py-24">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="flex flex-col items-center"
           >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+              className="mb-8"
+            >
+              <Github className="w-24 h-24 text-primary/80" />
+            </motion.div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-r from-primary via-primary/80 to-primary/50 bg-clip-text text-transparent">
-              Find Top GitHub Developers
+              GitHub User Search on Steroids
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-12 mx-auto">
-              Discover talented developers worldwide. Search, analyze, and connect with GitHub users based on their skills, location, and contributions.
+              Unleash the power of advanced GitHub search to discover top developers worldwide. Filter by location, skills, and more.
             </p>
           </motion.div>
 

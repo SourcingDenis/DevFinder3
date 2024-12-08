@@ -8,7 +8,7 @@ export function GithubAuthButton() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          scopes: 'read:user user:email'
+          scopes: 'read:user user:email repo public_repo'
         }
       });
 

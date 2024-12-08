@@ -9,6 +9,7 @@ const themeScript = `
   let theme = localStorage.getItem('theme');
   if (!theme) {
     theme = 'dark';
+    localStorage.setItem('theme', 'dark');
   }
   document.documentElement.classList.add(theme);
 `;

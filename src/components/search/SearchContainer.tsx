@@ -22,11 +22,15 @@ interface SearchContainerProps {
 
 export function SearchContainer({ onSearch }: SearchContainerProps) {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState<GitHubUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    // Initialize current page from URL or default to 1
+    const pageParam = searchParams.get('page');
+    return pageParam ? Number(pageParam) : 1;
+  });
   const [totalResults, setTotalResults] = useState(0);
   const [lastSearchParams, setLastSearchParams] = useState<Omit<UserSearchParams, 'page'> | null>(null);
   const [currentSort, setCurrentSort] = useState<SortOption>({ 
@@ -36,17 +40,23 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
   });
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [searchName, setSearchName] = useState('');
+  const [searchExecuted, setSearchExecuted] = useState(false);
+  const [noResultsFound, setNoResultsFound] = useState(false);
 
   // Handle URL parameters
   useEffect(() => {
     const query = searchParams.get('query');
+    const pageParam = searchParams.get('page');
+    const currentPage = pageParam ? Number(pageParam) : 1;
+
     if (query) {
-      const params: Omit<UserSearchParams, 'page'> = {
+      const params: UserSearchParams = {
         query,
         language: searchParams.get('language') || undefined,
         locations: searchParams.get('locations')?.split(',').filter((loc): loc is string => Boolean(loc)) || [],
         sort: searchParams.get('sort') || undefined,
         order: (searchParams.get('order') as UserSearchParams['order']) || undefined,
+        page: currentPage,
         per_page: searchParams.get('per_page') ? Number(searchParams.get('per_page')) : undefined,
         hireable: searchParams.get('hireable') ? searchParams.get('hireable') === 'true' : undefined
       };
@@ -60,14 +70,37 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
         });
       }
 
-      handleSearch(params);
+      // Perform search with the current page
+      const searchWithPage = async () => {
+        setIsLoading(true);
+        try {
+          const results = await searchUsers(params);
+          
+          setUsers(results.items);
+          setTotalResults(results.total_count);
+          setCurrentPage(currentPage);
+          
+          // Separate the page from other search params
+          const { page, ...searchParamsWithoutPage } = params;
+          setLastSearchParams(searchParamsWithoutPage);
+        } catch (err) {
+          setError('Failed to fetch users. Please try again.');
+          console.error('Error fetching users:', err);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      searchWithPage();
     }
   }, [searchParams]);
 
   const handleSearch = async (params: Partial<Omit<UserSearchParams, 'page'>>) => {
     setIsLoading(true);
     setError(null);
+    setNoResultsFound(false);
     setCurrentPage(1);
+    setSearchExecuted(true);
     onSearch?.();
     
     // Build search query string based on available parameters
@@ -95,6 +128,23 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     
     setLastSearchParams(searchParams);
     
+    // Preserve existing URL parameters and update with new search params
+    const urlParams = new URLSearchParams();
+    
+    // Add all non-null search parameters
+    urlParams.set('page', '1'); // Always reset to first page on new search
+    urlParams.set('query', searchParams.query);
+    
+    // Conditionally add other parameters
+    if (searchParams.language) urlParams.set('language', searchParams.language);
+    if (searchParams.locations?.length) urlParams.set('locations', searchParams.locations.join(','));
+    if (searchParams.sort) urlParams.set('sort', searchParams.sort);
+    if (searchParams.order) urlParams.set('order', searchParams.order);
+    if (searchParams.per_page) urlParams.set('per_page', searchParams.per_page.toString());
+    if (searchParams.hireable !== undefined) urlParams.set('hireable', searchParams.hireable.toString());
+    
+    setSearchParams(urlParams);
+    
     try {
       // Save the search to recent_searches if user is logged in and query exists
       if (user && params.query) {
@@ -108,13 +158,14 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
           .select();
       }
 
-      const results = await searchUsers({ 
+      const { items: searchResults, total_count } = await searchUsers({ 
         ...searchParams,
         page: 1
       });
       
-      setUsers(results.items);
-      setTotalResults(results.total_count);
+      setUsers(searchResults);
+      setTotalResults(total_count);
+      setNoResultsFound(searchResults.length === 0 && total_count === 0);
     } catch (err) {
       setError('Failed to fetch users. Please try again.');
       console.error('Error fetching users:', err);
@@ -138,6 +189,23 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
       });
       setUsers(results.items);
       setCurrentPage(page);
+
+      // Preserve existing URL parameters and update page
+      const urlParams = new URLSearchParams();
+      
+      // Add all parameters from lastSearchParams
+      urlParams.set('page', page.toString());
+      urlParams.set('query', lastSearchParams.query || ' ');
+      
+      // Conditionally add other parameters
+      if (lastSearchParams.language) urlParams.set('language', lastSearchParams.language);
+      if (lastSearchParams.locations?.length) urlParams.set('locations', lastSearchParams.locations.join(','));
+      if (lastSearchParams.sort) urlParams.set('sort', lastSearchParams.sort);
+      if (lastSearchParams.order) urlParams.set('order', lastSearchParams.order);
+      if (lastSearchParams.per_page) urlParams.set('per_page', lastSearchParams.per_page.toString());
+      if (lastSearchParams.hireable !== undefined) urlParams.set('hireable', lastSearchParams.hireable.toString());
+      
+      setSearchParams(urlParams);
     } catch (err) {
       setError('Failed to fetch users. Please try again.');
       console.error('Error fetching users:', err);
@@ -267,7 +335,7 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
               />
             </div>
           )}
-          <UserList users={users} />
+          <UserList users={users} searchExecuted={noResultsFound} />
           {showSignInPrompt && <SignInPrompt />}
           {users.length > 0 && !showSignInPrompt && (
             <Pagination

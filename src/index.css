@@ -69,6 +69,37 @@
   }
 }
 
+@layer components {
+  .card-header-with-icon {
+    @apply flex items-center gap-8;
+  }
+
+  .card-header-icon {
+    @apply h-7 w-7 text-primary flex-shrink-0;
+  }
+
+  .card-header-title {
+    @apply text-2xl font-semibold;
+  }
+
+  /* Add more global spacing utilities */
+  .icon-text-group {
+    @apply flex items-center gap-8;
+  }
+
+  .icon-text-group-sm {
+    @apply flex items-center gap-4;
+  }
+
+  .icon-text-group-lg {
+    @apply flex items-center gap-10;
+  }
+
+  .feature-icon {
+    @apply h-7 w-7 flex-shrink-0;
+  }
+}
+
 /* Custom scrollbar for Vercel-like feel */
 @layer utilities {
   .scrollbar-none {
@@ -116,5 +147,18 @@
     100% {
       transform: translateX(-100%);
     }
+  }
+
+  @keyframes natural-spin {
+    0% {
+      transform: rotate(0deg) perspective(1000px) rotateX(10deg);
+    }
+    100% {
+      transform: rotate(360deg) perspective(1000px) rotateX(10deg);
+    }
+  }
+
+  .animate-natural-spin {
+    animation: natural-spin 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 }

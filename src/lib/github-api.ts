@@ -5,78 +5,84 @@ import { supabase } from './supabase';
 const getGithubApi = async () => {
   const { data: { session } } = await supabase.auth.getSession();
   
-  // Add more robust token checking
   if (!session?.provider_token) {
     console.error('No GitHub token available. Please re-authenticate.');
     throw new Error('No GitHub token available');
   }
 
-  return axios.create({
+  const api = axios.create({
     baseURL: 'https://api.github.com',
     headers: {
       Authorization: `Bearer ${session.provider_token}`,
-      Accept: 'application/vnd.github.v3+json'
+      Accept: 'application/vnd.github.v3+json',
+      'X-GitHub-Api-Version': '2022-11-28'
     }
   });
+
+  return api;
 };
 
-export async function searchUsers(params: UserSearchParams): Promise<SearchResponse> {
-  try {
-    const githubApi = await getGithubApi();
-    
-    // Ensure there's a valid search query
-    let searchQuery = params.query || 'type:user';
-    if (params.language) searchQuery += ` language:${params.language}`;
-    if (params.locations?.length) searchQuery += ` location:${params.locations.join(' location:')}`;
+export async function searchUsers(params: UserSearchParams): Promise<SearchResponse<GitHubUser>> {
+  const githubApi = await getGithubApi();
+  
+  // Construct the search query
+  let q = params.query || '';
+  
+  // Add language filter if specified
+  if (params.language) {
+    q += ` language:${params.language}`;
+  }
 
-    const response = await githubApi.get<SearchResponse>('/search/users', {
+  // Add location filters if specified
+  if (params.locations && params.locations.length > 0) {
+    q += ` ${params.locations.map(loc => `location:${loc}`).join(' ')}`;
+  }
+
+  // Add followers range if specified
+  if (params.followersMin) {
+    q += ` followers:>=${params.followersMin}`;
+  }
+  if (params.followersMax) {
+    q += ` followers:<=${params.followersMax}`;
+  }
+
+  // Add repositories range if specified
+  if (params.reposMin) {
+    q += ` repos:>=${params.reposMin}`;
+  }
+  if (params.reposMax) {
+    q += ` repos:<=${params.reposMax}`;
+  }
+
+  try {
+    const response = await githubApi.get('/search/users', {
       params: {
-        q: searchQuery,
-        sort: params.sort || '',
+        q,
+        sort: params.sort || 'best-match',
         order: params.order || 'desc',
-        per_page: params.per_page || 10,
+        per_page: params.per_page || 30,
         page: params.page || 1
       }
     });
 
     const users = await Promise.all(
-      response.data.items.map(async (user) => {
-        const userDetailsResponse = await githubApi.get<GitHubUser>(`/users/${user.login}`);
-        const userDetails = userDetailsResponse.data;
-        
-        // Get user's top language
-        let topLanguage = null;
-        try {
-          const reposResponse = await githubApi.get<{ language: string }[]>(`/users/${userDetails.login}/repos`, {
-            params: { sort: 'pushed', per_page: 10 }
-          });
-          
-          // Count languages
-          const languageCounts = reposResponse.data.reduce((acc, repo) => {
-            if (repo.language) {
-              acc[repo.language] = (acc[repo.language] || 0) + 1;
-            }
-            return acc;
-          }, {} as Record<string, number>);
-          topLanguage = Object.keys(languageCounts).sort((a, b) => languageCounts[b] - languageCounts[a])[0];
-        } catch (error) {
-          console.error('Error fetching user repositories:', error);
-        }
-
+      response.data.items.map(async (user: any) => {
+        // Fetch detailed user information
+        const userDetailsResponse = await githubApi.get(`/users/${user.login}`);
         return {
-          ...userDetails,
-          hireable: userDetails.hireable,
-          topLanguage
+          ...userDetailsResponse.data,
+          score: user.score
         };
       })
     );
 
     return {
       items: users,
-      total_count: response.data.total_count
+      total_count: response.data.total_count,
+      incomplete_results: response.data.incomplete_results
     };
   } catch (error) {
-    console.error('Error searching GitHub users:', error);
+    console.error('Error searching users:', error);
     throw error;
   }
 }
@@ -84,43 +90,81 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
 export async function fetchAllUsers(params: Omit<UserSearchParams, 'page'>): Promise<GitHubUser[]> {
   const allUsers: GitHubUser[] = [];
   let currentPage = 1;
-  
+  const perPage = 100; // Maximum allowed by GitHub API
+
   while (true) {
-    const response = await searchUsers({ ...params, page: currentPage });
-    allUsers.push(...response.items);
-    
-    if (response.items.length < (params.per_page || 10) || allUsers.length >= 1000) {
+    try {
+      const response = await searchUsers({
+        ...params,
+        page: currentPage,
+        per_page: perPage
+      });
+
+      allUsers.push(...response.items);
+
+      // Check if we've fetched all users
+      if (response.items.length < perPage || allUsers.length >= response.total_count) {
+        break;
+      }
+
+      currentPage++;
+    } catch (error) {
+      console.error('Error fetching all users:', error);
       break;
     }
-    currentPage++;
   }
-  
+
   return allUsers;
 }
 
-export async function findUserEmail(username: string): Promise<string | null> {
+export async function findUserEmail(username: string): Promise<{ email: string | null; source: string | null }> {
   try {
+    console.log('DEBUG: findUserEmail started for', username);
     const githubApi = await getGithubApi();
     
-    // Fetch user's events to find an email
-    const eventsResponse = await githubApi.get(`/users/${username}/events/public`);
-    const events = eventsResponse.data;
-
-    // Look for PushEvent which might contain commit email
-    for (const event of events) {
-      if (event.type === 'PushEvent' && event.payload.commits) {
-        const commit = event.payload.commits[0];
-        if (commit.author && commit.author.email) {
-          return commit.author.email;
-        }
-      }
+    // Check public profile first
+    console.log('DEBUG: Checking public profile');
+    const userResponse = await githubApi.get(`/users/${username}`);
+    if (userResponse.data.email) {
+      console.log('DEBUG: Found public email:', userResponse.data.email);
+      return { email: userResponse.data.email, source: 'github_profile' };
     }
 
-    // If no email found in events, try user's profile
-    const userResponse = await githubApi.get(`/users/${username}`);
-    return userResponse.data.email || null;
+    // Try to find email in commits
+    console.log('DEBUG: Checking commits');
+    try {
+      const reposResponse = await githubApi.get(`/users/${username}/repos`, {
+        params: { sort: 'pushed', per_page: 5 }
+      });
+
+      for (const repo of reposResponse.data) {
+        try {
+          console.log('DEBUG: Checking commits in repo:', repo.name);
+          const commitsResponse = await githubApi.get(`/repos/${username}/${repo.name}/commits`, {
+            params: { per_page: 5 }
+          });
+
+          for (const commit of commitsResponse.data) {
+            if (commit.commit?.author?.email && 
+                !commit.commit.author.email.includes('noreply.github.com')) {
+              console.log('DEBUG: Found commit email:', commit.commit.author.email);
+              return { email: commit.commit.author.email, source: 'github_commit' };
+            }
+          }
+        } catch (commitError) {
+          console.log('DEBUG: Error checking commits:', commitError);
+          continue;
+        }
+      }
+    } catch (repoError) {
+      console.log('DEBUG: Error checking repos:', repoError);
+    }
+
+    console.log('DEBUG: No email found, returning null');
+    return { email: null, source: null };
+
   } catch (error) {
-    console.error(`Error finding email for user ${username}:`, error);
-    return null;
+    console.error('DEBUG: Error in findUserEmail:', error);
+    throw error;
   }
 }

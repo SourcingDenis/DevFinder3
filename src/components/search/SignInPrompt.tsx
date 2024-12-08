@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Github, Download, BookmarkCheck } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
+import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { supabase } from '@/lib/supabase';
 
 export function SignInPrompt() {
-  const { user } = useAuth();
+  const user = useAuthRedirect();
 
   const handleSignIn = async () => {
     try {

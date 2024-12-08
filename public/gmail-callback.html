@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gmail Authentication</title>
+</head>
+<body>
+    <script>
+        function handleCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
+            const error = urlParams.get('error');
+
+            if (error) {
+                window.opener.postMessage({
+                    type: 'GMAIL_AUTH_ERROR',
+                    error: error
+                }, window.location.origin);
+                window.close();
+                return;
+            }
+
+            if (code && state) {
+                // Verify state and extract user ID
+                const storedState = localStorage.getItem('gmail_oauth_state');
+                const [savedState, userId] = state.split('|');
+
+                if (savedState !== storedState) {
+                    window.opener.postMessage({
+                        type: 'GMAIL_AUTH_ERROR',
+                        error: 'Invalid state'
+                    }, window.location.origin);
+                    window.close();
+                    return;
+                }
+
+                // Exchange code for tokens via backend
+                fetch('/api/gmail-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        code, 
+                        state: savedState,
+                        userId 
+                    })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.error) {
+                        throw new Error(result.error);
+                    }
+                    
+                    window.opener.postMessage({
+                        type: 'GMAIL_AUTH_SUCCESS',
+                        state: savedState
+                    }, window.location.origin);
+                    window.close();
+                })
+                .catch(error => {
+                    window.opener.postMessage({
+                        type: 'GMAIL_AUTH_ERROR',
+                        error: error.message
+                    }, window.location.origin);
+                    window.close();
+                });
+            }
+        }
+
+        handleCallback();
+    </script>
+</body>
+</html>
