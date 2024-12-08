@@ -40,7 +40,6 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
   });
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [searchName, setSearchName] = useState('');
-  const [searchExecuted, setSearchExecuted] = useState(false);
   const [noResultsFound, setNoResultsFound] = useState(false);
 
   // Centralized function to build and normalize search parameters
@@ -68,17 +67,13 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     if (!user || !lastSearchParams) return;
 
     try {
-      const { data, error } = await supabase
+      await supabase
         .from('saved_searches')
         .insert({
           user_id: user.id,
           name: searchName || `Search on ${new Date().toLocaleDateString()}`,
           search_params: lastSearchParams
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+        });
 
       setSaveDialogOpen(false);
       setSearchName('');
@@ -147,7 +142,6 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     setError(null);
     setNoResultsFound(false);
     setCurrentPage(1);
-    setSearchExecuted(true);
     onSearch?.();
     
     // Build comprehensive search query

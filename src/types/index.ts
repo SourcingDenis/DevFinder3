@@ -7,6 +7,10 @@ export interface UserSearchParams {
   order?: 'asc' | 'desc';
   per_page?: number;
   hireable?: boolean;
+  followersMin?: number;
+  followersMax?: number;
+  reposMin?: number;
+  reposMax?: number;
 }
 
 export interface GitHubUser {
@@ -19,6 +23,7 @@ export interface GitHubUser {
   email?: string;
   location?: string;
   public_repos: number;
+  public_gists: number;
   followers: number;
   following: number;
   created_at: string;
@@ -26,9 +31,19 @@ export interface GitHubUser {
   blog?: string;
   topLanguage?: string | null;
   hireable?: boolean;
+  languages?: string[];
 }
 
-export interface SearchResponse {
-  items: GitHubUser[];
+export interface SearchResponse<T> {
+  items: T[];
   total_count: number;
+  incomplete_results?: boolean;
+}
+
+export interface SavedProfile {
+  id: number;
+  user_id: string;
+  github_username: string;
+  github_data: string;
+  created_at: string;
 }

@@ -3,55 +3,50 @@ import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { UserCard } from '../user/UserCard';
 import { LoadingSpinner } from '../ui/loading-spinner';
-import type { GitHubUser } from '@/types';
-
-interface SavedProfile {
-  id: number;
-  user_id: string;
-  github_username: string;
-  github_data: GitHubUser;
-  created_at: string;
-  enriched_emails?: { 
-    email: string; 
-    source: string; 
-    enriched_at: string 
-  }[];
-}
+import type { SavedProfile } from '@/types';
+import { useToast } from '@/components/ui/use-toast';
 
 export function SavedProfiles() {
   const { user } = useAuth();
   const [profiles, setProfiles] = useState<SavedProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   const fetchSavedProfiles = async () => {
     if (!user) return;
 
     try {
-      // Fetch saved profiles with their enriched emails
       const { data, error } = await supabase
         .from('saved_profiles')
-        .select(`
-          id, 
-          github_username, 
-          github_data, 
-          created_at
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .select('*')
+        .eq('user_id', user.id);
 
-      if (error) throw error;
-      setProfiles(data || []);
-    } catch (error) {
-      console.error('Error fetching saved profiles:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          name: error.name,
-          stack: error.stack
+      if (error) {
+        toast({
+          title: 'Error',
+          description: `Failed to fetch saved profiles: ${error.message}`,
+          variant: 'destructive',
         });
+        return;
       }
-      setProfiles([]);
-    } finally {
+
+      // Ensure the data matches SavedProfile type
+      const mappedProfiles: SavedProfile[] = data.map(profile => ({
+        id: profile.id,
+        user_id: profile.user_id,
+        github_username: profile.github_username,
+        github_data: profile.github_data,
+        created_at: profile.created_at
+      }));
+
+      setProfiles(mappedProfiles);
+      setIsLoading(false);
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred while fetching saved profiles.',
+        variant: 'destructive',
+      });
       setIsLoading(false);
     }
   };
@@ -60,10 +55,41 @@ export function SavedProfiles() {
     fetchSavedProfiles();
   }, [user]);
 
-  const handleProfileRemove = (removedProfileLogin: string) => {
-    setProfiles(currentProfiles => 
-      currentProfiles.filter(profile => profile.github_username !== removedProfileLogin)
-    );
+  const handleRemoveSavedProfile = async (githubUsername: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('saved_profiles')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('github_username', githubUsername);
+
+      if (error) {
+        toast({
+          title: 'Error',
+          description: `Failed to remove profile: ${error.message}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Update local state by filtering out the removed profile
+      setProfiles(currentProfiles => 
+        currentProfiles.filter(profile => profile.github_username !== githubUsername)
+      );
+
+      toast({
+        title: 'Profile Removed',
+        description: `${githubUsername} has been removed from your saved profiles.`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (!user) {
@@ -91,11 +117,9 @@ export function SavedProfiles() {
       {profiles.map((profile) => (
         <UserCard 
           key={profile.id} 
-          user={{
-            ...profile.github_data,
-          }} 
+          user={typeof profile.github_data === 'string' ? JSON.parse(profile.github_data) : profile.github_data} 
           isSaved={true} 
-          onRemoveSaved={() => handleProfileRemove(profile.github_username)}
+          onRemove={() => handleRemoveSavedProfile(profile.github_username)}
         />
       ))}
     </div>

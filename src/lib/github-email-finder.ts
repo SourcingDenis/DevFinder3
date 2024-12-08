@@ -115,17 +115,3 @@ async function discoverGitHubEmails(username: string): Promise<string[]> {
     return [];
   }
 }
-
-async function getCommitUrls(repoUrl: string): Promise<string[]> {
-  try {
-    const response = await fetch(repoUrl);
-    const html = await response.text();
-    
-    return [...html.matchAll(/href="\/[^"]+\/commit\/[^"]+"/g)]
-      .map(match => match[0].slice(6, -1))
-      .map(url => `https://github.com${url}`);
-  } catch (error) {
-    console.error('Error getting commit URLs:', error);
-    return [];
-  }
-}

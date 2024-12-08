@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Search, ArrowRight } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
 import type { UserSearchParams } from '@/types';
 
 interface SearchHistoryProps {
@@ -21,7 +20,6 @@ interface RecentSearch {
 
 export function SearchHistory({ onSearch }: SearchHistoryProps) {
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
 
   useEffect(() => {
@@ -99,7 +97,7 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
     });
 
     // Update the URL without adding a new history entry
-    setSearchParams(params, { replace: true });
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
   };
 
   if (!user || recentSearches.length === 0) return null;

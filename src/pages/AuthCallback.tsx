@@ -64,7 +64,7 @@ export function AuthCallback() {
           toast({
             title: 'Warning',
             description: 'Authenticated successfully but had trouble saving credentials.',
-            variant: 'warning'
+            variant: 'destructive'
           });
         } else {
           toast({

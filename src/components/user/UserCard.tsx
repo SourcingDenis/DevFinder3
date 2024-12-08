@@ -1,27 +1,28 @@
-import { useState, useEffect } from 'react';
 import type { GitHubUser } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { UserStats } from './UserStats';
 import { LanguageBadge } from './LanguageBadge';
 import { SaveProfileButton } from './SaveProfileButton';
 import { UserEmails } from './UserEmails';
 import { ExternalLink, MapPin, Building, Link as LinkIcon, Calendar, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
-interface UserCardProps {
+type UserCardProps = {
   user: GitHubUser;
   isSaved?: boolean;
-  onRemoveSaved?: () => void;
-}
+  onRemove?: () => void;
+  className?: string;
+};
 
 export function UserCard({ 
   user, 
   isSaved, 
-  onRemoveSaved 
+  onRemove, 
+  className 
 }: UserCardProps) {
   return (
-    <Card className="w-full">
+    <Card className={className}>
       <CardContent className="p-4">
         <div className="relative">
           {isSaved && (
@@ -29,7 +30,7 @@ export function UserCard({
               variant="ghost"
               size="icon"
               className="absolute right-0 top-0 h-8 w-8 sm:hidden hover:bg-destructive/10 hover:text-destructive"
-              onClick={onRemoveSaved}
+              onClick={onRemove}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -43,8 +44,13 @@ export function UserCard({
             <div className="flex-1 min-w-0 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-base truncate">
+                  <h3 className="font-semibold text-base truncate flex items-center gap-2">
                     {user.name || user.login}
+                    {user.hireable && (
+                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                        Hireable
+                      </Badge>
+                    )}
                   </h3>
                   <a 
                     href={user.html_url}
@@ -59,7 +65,7 @@ export function UserCard({
                 <SaveProfileButton
                   user={user}
                   isSaved={isSaved}
-                  onRemoveSaved={onRemoveSaved}
+                  onRemove={onRemove}
                   className="flex-shrink-0"
                 />
               </div>
@@ -108,7 +114,7 @@ export function UserCard({
 
               {user.languages && user.languages.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {user.languages.map(lang => (
+                  {user.languages.map((lang) => (
                     <LanguageBadge key={lang} language={lang} />
                   ))}
                 </div>

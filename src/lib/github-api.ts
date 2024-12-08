@@ -154,35 +154,34 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
         incomplete_results: response.data.incomplete_results
       };
     } catch (apiError) {
-      // Specific error handling for GitHub API errors
-      if (apiError.response) {
-        // The request was made and the server responded with a status code
-        console.error('GitHub API Error:', {
-          status: apiError.response.status,
-          data: apiError.response.data,
-          headers: apiError.response.headers
-        });
+      // Type-safe error handling
+      if (axios.isAxiosError(apiError)) {
+        if (apiError.response) {
+          console.error('GitHub API Error:', {
+            status: apiError.response.status,
+            data: apiError.response.data,
+            headers: apiError.response.headers
+          });
 
-        // Handle specific error scenarios
-        switch (apiError.response.status) {
-          case 403:
-            throw new Error('GitHub API rate limit exceeded. Please try again later.');
-          case 422:
-            throw new Error('Invalid search query. Please check your search parameters.');
-          case 503:
-            throw new Error('GitHub service is temporarily unavailable. Please try again later.');
-          default:
-            throw new Error(`GitHub API request failed: ${apiError.message}`);
+          switch (apiError.response.status) {
+            case 403:
+              throw new Error('GitHub API rate limit exceeded. Please try again later.');
+            case 422:
+              throw new Error('Invalid search query. Please check your search parameters.');
+            case 503:
+              throw new Error('GitHub service is temporarily unavailable. Please try again later.');
+            default:
+              throw new Error(`GitHub API request failed: ${apiError.message}`);
+          }
+        } else if (apiError.request) {
+          console.error('No response received:', apiError.request);
+          throw new Error('No response from GitHub. Check your internet connection.');
         }
-      } else if (apiError.request) {
-        // The request was made but no response was received
-        console.error('No response received:', apiError.request);
-        throw new Error('No response from GitHub. Check your internet connection.');
-      } else {
-        // Something happened in setting up the request
-        console.error('Error setting up GitHub API request:', apiError.message);
-        throw apiError;
       }
+
+      // Fallback for any other unexpected errors
+      console.error('Error setting up GitHub API request:', apiError);
+      throw apiError;
     }
   } catch (error) {
     console.error('Unexpected error in searchUsers:', error);

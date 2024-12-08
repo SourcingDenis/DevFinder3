@@ -5,16 +5,20 @@ import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import type { GitHubUser } from '@/types';
 
-interface SaveProfileButtonProps {
+export type SaveProfileButtonProps = {
   user: GitHubUser;
   isSaved?: boolean;
-  onSaveToggle?: (saved: boolean) => void;
-}
+  onSaveToggle?: () => void;
+  onRemove?: () => void;
+  className?: string;
+};
 
 export function SaveProfileButton({ 
   user, 
   isSaved = false, 
-  onSaveToggle 
+  onSaveToggle, 
+  onRemove,
+  className
 }: SaveProfileButtonProps) {
   const { user: authUser } = useAuth();
   const [saved, setSaved] = useState(isSaved);
@@ -63,7 +67,8 @@ export function SaveProfileButton({
 
         if (error) throw error;
         setSaved(false);
-        onSaveToggle?.(false);
+        onSaveToggle?.();
+        onRemove?.(); // Call onRemove when removing a saved profile
       } else {
         // Add to saved profiles
         const { error } = await supabase
@@ -76,7 +81,7 @@ export function SaveProfileButton({
 
         if (error) throw error;
         setSaved(true);
-        onSaveToggle?.(true);
+        onSaveToggle?.();
       }
     } catch (error) {
       console.error('Error saving profile:', {
@@ -100,7 +105,7 @@ export function SaveProfileButton({
       size="sm"
       onClick={handleSave}
       disabled={isLoading || !authUser}
-      className={saved ? "sm:flex hidden" : undefined}
+      className={[saved ? "sm:flex hidden" : undefined, className].filter(Boolean).join(' ')}
     >
       <Bookmark className={`h-4 w-4 mr-2 ${saved ? 'fill-current' : ''}`} />
       {saved ? 'Saved' : 'Save Profile'}

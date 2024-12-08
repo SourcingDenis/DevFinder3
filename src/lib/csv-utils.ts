@@ -2,7 +2,6 @@ import { GitHubUser } from '@/types';
 
 export interface CSVExportOptions {
   onProgress?: (progress: number) => void;
-  chunkSize?: number;
   filename?: string;
 }
 
@@ -12,7 +11,6 @@ export async function convertToCSV(
 ): Promise<string> {
   const { 
     onProgress = () => {}, 
-    chunkSize = 50 
   } = options;
 
   const headers = [
@@ -34,8 +32,8 @@ export async function convertToCSV(
   const processedRows: string[][] = [];
   
   try {
-    for (let i = 0; i < users.length; i += chunkSize) {
-      const chunk = users.slice(i, i + chunkSize);
+    for (let i = 0; i < users.length; i += 50) {
+      const chunk = users.slice(i, i + 50);
       
       const chunkRows = chunk.map(user => [
         String(user.login),
@@ -101,7 +99,6 @@ export async function exportUsersToCSV(
 ): Promise<void> {
   const { 
     onProgress = () => {}, 
-    chunkSize = 50,
     filename = 'github_users.csv'
   } = options;
 
