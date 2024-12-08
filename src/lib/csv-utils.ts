@@ -1,9 +1,16 @@
-import { GitHubUser } from '@/types';
+import { GitHubUser } from '@/types/github';
 
 export interface CSVExportOptions {
   onProgress?: (progress: number) => void;
   chunkSize?: number;
   filename?: string;
+}
+
+function escapeCSVField(field: string): string {
+  if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+    return `"${field.replace(/"/g, '""')}"`;
+  }
+  return field;
 }
 
 export async function convertToCSV(
@@ -18,16 +25,15 @@ export async function convertToCSV(
   const headers = [
     'Username',
     'Name',
-    'Bio',
+    'Email',
     'Location',
     'Company',
-    'Blog',
+    'Bio',
     'Public Repos',
     'Followers',
     'Following',
     'Created At',
     'Profile URL',
-    'Top Language'
   ];
 
   // Process users in chunks to allow progress updates
@@ -38,18 +44,17 @@ export async function convertToCSV(
       const chunk = users.slice(i, i + chunkSize);
       
       const chunkRows = chunk.map(user => [
-        String(user.login),
-        String(user.name || ''),
-        String(user.bio || '').replace(/"/g, '""'), // Escape quotes in CSV
-        String(user.location || ''),
-        String(user.company || ''),
-        String(user.blog || ''),
-        String(user.public_repos),
-        String(user.followers),
-        String(user.following),
+        user.login,
+        user.name || '',
+        user.email || '',
+        user.location || '',
+        user.company || '',
+        user.bio || '',
+        user.public_repos.toString(),
+        user.followers.toString(),
+        user.following.toString(),
         new Date(user.created_at).toLocaleDateString(),
-        String(user.html_url),
-        String(user.topLanguage || '')
+        user.html_url,
       ]);
 
       processedRows.push(...chunkRows);
@@ -64,7 +69,7 @@ export async function convertToCSV(
 
     const csvContent = [
       headers.join(','),
-      ...processedRows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...processedRows.map(row => row.map(escapeCSVField).join(','))
     ].join('\n');
 
     return csvContent;

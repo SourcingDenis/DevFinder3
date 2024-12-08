@@ -40,7 +40,6 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
   });
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [searchName, setSearchName] = useState('');
-  const [searchExecuted, setSearchExecuted] = useState(false);
   const [noResultsFound, setNoResultsFound] = useState(false);
 
   // Handle URL parameters
@@ -100,7 +99,6 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     setError(null);
     setNoResultsFound(false);
     setCurrentPage(1);
-    setSearchExecuted(true);
     onSearch?.();
     
     // Build search query string based on available parameters

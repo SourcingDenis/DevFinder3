@@ -1,134 +1,116 @@
-import { useState, KeyboardEvent, FormEvent, ChangeEvent, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { LocationTags } from '@/components/search/LocationTags';
-import { Search } from 'lucide-react';
-import type { UserSearchParams } from '@/types';
-import { useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { UserSearchParams } from '@/types/github';
 
 interface SearchFormProps {
-  onSearch: (params: Omit<UserSearchParams, 'page'>) => void;
+  onSearch: (params: UserSearchParams) => void;
 }
 
-export function SearchForm({ onSearch }: SearchFormProps) {
-  const [searchParams] = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get('query') || '');
-  const [language, setLanguage] = useState(searchParams.get('language') || '');
-  const [locationInput, setLocationInput] = useState('');
-  const [locations, setLocations] = useState<string[]>(
-    searchParams.get('locations')?.split(',').filter(Boolean) || []
-  );
+export default function SearchForm({ onSearch }: SearchFormProps) {
+  const [query, setQuery] = useState('');
+  const [location, setLocation] = useState('');
+  const [language, setLanguage] = useState('');
+  const [sort, setSort] = useState<'followers' | 'repositories' | 'joined'>('followers');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
 
-  useEffect(() => {
-    const urlQuery = searchParams.get('query');
-    const urlLanguage = searchParams.get('language');
-    const urlLocations = searchParams.get('locations')?.split(',').filter(Boolean) || [];
-
-    if (urlQuery) setQuery(urlQuery);
-    if (urlLanguage) setLanguage(urlLanguage);
-    setLocations(urlLocations);
-
-    if (urlQuery) {
-      handleSearch(urlQuery, urlLanguage || '', urlLocations);
-    }
-  }, [searchParams]);
-
-  const handleLocationKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && locationInput.trim()) {
-      e.preventDefault();
-      const newLocation = locationInput.trim();
-      if (!locations.includes(newLocation)) {
-        const newLocations = [...locations, newLocation];
-        setLocations(newLocations);
-        setLocationInput('');
-        handleSearch(query, language, newLocations);
-      }
-    }
-  };
-
-  const handleRemoveLocation = (locationToRemove: string): void => {
-    const newLocations = locations.filter((loc: string): boolean => loc !== locationToRemove);
-    setLocations(newLocations);
-    handleSearch(query, language, newLocations);
-  };
-
-  const handleSearch = (
-    currentQuery: string,
-    currentLanguage: string,
-    currentLocations: string[]
-  ): void => {
-    const searchParams: Partial<UserSearchParams> = {};
-    
-    if (currentQuery.trim()) {
-      searchParams.query = currentQuery.trim();
-    }
-    
-    if (currentLanguage) {
-      searchParams.language = currentLanguage;
-    }
-    
-    if (currentLocations.length > 0) {
-      searchParams.locations = currentLocations;
-    }
-
-    if (Object.keys(searchParams).length > 0) {
-      onSearch(searchParams as Omit<UserSearchParams, 'page'>);
-    }
-  };
-
-  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleSearch(query, language, locations);
-  };
-
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.id === 'query') {
-      setQuery(e.target.value);
-    } else if (e.target.id === 'language') {
-      setLanguage(e.target.value);
-    } else if (e.target.id === 'location') {
-      setLocationInput(e.target.value);
-    }
+    onSearch({
+      q: query,
+      location,
+      language,
+      sort,
+      order,
+    });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
+      <div>
+        <label htmlFor="query" className="block text-sm font-medium text-gray-700">
+          Search Query
+        </label>
+        <input
+          type="text"
           id="query"
-          placeholder="Search GitHub users..."
           value={query}
-          onChange={handleInputChange}
-          className="pl-10 h-12"
+          onChange={(e) => setQuery(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          placeholder="Enter username, email, or name"
+          required
         />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          id="language"
-          placeholder="Programming language"
-          value={language}
-          onChange={handleInputChange}
-          className="h-10"
-        />
-        <div className="space-y-2">
-          <Input
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+            Location
+          </label>
+          <input
+            type="text"
             id="location"
-            placeholder="Location (press Enter to add)"
-            value={locationInput}
-            onChange={handleInputChange}
-            onKeyDown={handleLocationKeyDown}
-            className="h-10"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            placeholder="e.g. San Francisco"
           />
-          <LocationTags
-            locations={locations}
-            onRemove={handleRemoveLocation}
+        </div>
+
+        <div>
+          <label htmlFor="language" className="block text-sm font-medium text-gray-700">
+            Programming Language
+          </label>
+          <input
+            type="text"
+            id="language"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            placeholder="e.g. JavaScript"
           />
         </div>
       </div>
-      <Button type="submit" className="w-full h-10">
-        Search Users
-      </Button>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="sort" className="block text-sm font-medium text-gray-700">
+            Sort By
+          </label>
+          <select
+            id="sort"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as 'followers' | 'repositories' | 'joined')}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          >
+            <option value="followers">Followers</option>
+            <option value="repositories">Repositories</option>
+            <option value="joined">Join Date</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="order" className="block text-sm font-medium text-gray-700">
+            Order
+          </label>
+          <select
+            id="order"
+            value={order}
+            onChange={(e) => setOrder(e.target.value as 'asc' | 'desc')}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          >
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          Search
+        </button>
+      </div>
     </form>
   );
 }

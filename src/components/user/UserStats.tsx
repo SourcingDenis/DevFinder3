@@ -1,29 +1,27 @@
-import { Users, BookOpen, GitFork } from 'lucide-react';
-import type { GitHubUser } from '@/types';
+import { GitHubUser } from '@/types/github';
 
 interface UserStatsProps {
   user: GitHubUser;
+  className?: string;
 }
 
-export function UserStats({ user }: UserStatsProps) {
-  const stats = [
-    { icon: Users, label: 'Followers', value: user.followers || 0 },
-    { icon: Users, label: 'Following', value: user.following || 0 },
-    { icon: BookOpen, label: 'Repos', value: user.public_repos || 0 },
-    { icon: GitFork, label: 'Forks', value: user.public_gists || 0 },
-  ];
-
+export function UserStats({ user, className }: UserStatsProps) {
   return (
-    <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 sm:gap-4 mt-2">
-      {stats.map(({ icon: Icon, label, value }) => (
-        <div key={label} className="flex flex-col items-center sm:items-start sm:flex-row sm:gap-1 p-2 sm:p-0 rounded-lg bg-muted/50 sm:bg-transparent">
-          <Icon className="h-4 w-4 text-muted-foreground mb-1 sm:mb-0" />
-          <div className="text-center sm:text-left">
-            <div className="font-medium">{value.toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">{label}</div>
-          </div>
+    <div className={className}>
+      <div className="flex gap-4">
+        <div>
+          <span className="text-sm font-medium">{user.public_repos}</span>
+          <span className="text-xs text-muted-foreground ml-1">Repositories</span>
         </div>
-      ))}
+        <div>
+          <span className="text-sm font-medium">{user.followers}</span>
+          <span className="text-xs text-muted-foreground ml-1">Followers</span>
+        </div>
+        <div>
+          <span className="text-sm font-medium">{user.following}</span>
+          <span className="text-xs text-muted-foreground ml-1">Following</span>
+        </div>
+      </div>
     </div>
   );
 }

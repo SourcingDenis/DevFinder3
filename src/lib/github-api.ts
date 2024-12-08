@@ -1,6 +1,9 @@
 import axios from 'axios';
-import { UserSearchParams, GitHubUser, SearchResponse } from '@/types';
+import { UserSearchParams, GitHubUser, SearchResponse } from '@/types/github';
 import { supabase } from './supabase';
+import { Octokit } from '@octokit/rest';
+
+const octokit = new Octokit();
 
 const getGithubApi = async () => {
   const { data: { session } } = await supabase.auth.getSession();
@@ -115,6 +118,51 @@ export async function fetchAllUsers(params: Omit<UserSearchParams, 'page'>): Pro
   }
 
   return allUsers;
+}
+
+export async function searchGitHubUsers(params: UserSearchParams): Promise<SearchResponse<GitHubUser>> {
+  const { q, location, language, sort, order, page = 1, per_page = 30 } = params;
+
+  let query = q;
+  if (location) query += ` location:${location}`;
+  if (language) query += ` language:${language}`;
+
+  const response = await octokit.search.users({
+    q: query,
+    sort,
+    order,
+    page,
+    per_page,
+  });
+
+  return {
+    total_count: response.data.total_count,
+    incomplete_results: response.data.incomplete_results,
+    items: response.data.items.map(transformGitHubUser),
+  };
+}
+
+function transformGitHubUser(user: any): GitHubUser {
+  return {
+    id: user.id,
+    login: user.login,
+    name: user.name,
+    avatar_url: user.avatar_url,
+    html_url: user.html_url,
+    bio: user.bio,
+    blog: user.blog,
+    company: user.company,
+    location: user.location,
+    email: user.email,
+    hireable: user.hireable,
+    twitter_username: user.twitter_username,
+    public_repos: user.public_repos,
+    public_gists: user.public_gists,
+    followers: user.followers,
+    following: user.following,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+  };
 }
 
 export async function findUserEmail(username: string): Promise<{ email: string | null; source: string | null }> {

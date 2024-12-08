@@ -5,10 +5,10 @@ import {
   AccordionItem,
   AccordionTriggerNoIcon,
 } from "@/components/ui/accordion";
-import { LightbulbIcon, Search as SearchIcon, MapPin, Code2, X, Star, GitBranch, Users } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { LightbulbIcon, Search as SearchIcon, MapPin, Code2, X } from "lucide-react";
 import { useSearchTips } from '@/hooks/useSearchTips';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 
 export function Search() {
   const { isVisible, isExpanded, setIsExpanded, hidePermanently } = useSearchTips();
