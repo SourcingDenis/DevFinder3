@@ -40,7 +40,6 @@ function AppContent() {
           <Route path="/home" element={<Home />} />
           <Route path="/search" element={<Search />} />
           <Route path="/bookmarks" element={<SavedProfiles />} />
-          <Route path="/saved-profiles" element={<Navigate to="/bookmarks" replace />} />
           <Route path="/saved-searches" element={<SavedSearches />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/settings" element={<Settings />} />
