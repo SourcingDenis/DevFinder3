@@ -13,10 +13,27 @@ export function GitHubLoginButton({ confetti = false, variant = 'hero' }: GitHub
   const handleLogin = async () => {
     try {
       console.log('Starting GitHub OAuth flow...');
+      
+      // If confetti is enabled, show it and wait for animation to complete
+      const confettiPromise = new Promise<void>((resolve) => {
+        if (confetti) {
+          setShowConfetti(true);
+          setTimeout(() => {
+            setShowConfetti(false);
+            resolve();
+          }, 3000); // Increased to 3 seconds for better visibility
+        } else {
+          resolve();
+        }
+      });
+
+      // Wait for confetti to complete before starting OAuth
+      await confettiPromise;
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: 'https://devfinder.co/home'
         }
       });
       
@@ -26,11 +43,6 @@ export function GitHubLoginButton({ confetti = false, variant = 'hero' }: GitHub
       }
       
       console.log('OAuth response:', data);
-
-      if (confetti) {
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 5000);
-      }
     } catch (error) {
       console.error('Failed to sign in:', error);
     }

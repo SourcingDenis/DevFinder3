@@ -117,7 +117,7 @@ export function SavedProfiles() {
       {profiles.map((profile) => (
         <UserCard 
           key={profile.id} 
-          user={typeof profile.github_data === 'string' ? JSON.parse(profile.github_data) : profile.github_data} 
+          user={JSON.parse(profile.github_data)} 
           isSaved={true} 
           onRemove={() => handleRemoveSavedProfile(profile.github_username)}
         />

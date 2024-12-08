@@ -80,6 +80,9 @@ export function Header() {
             <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent hidden md:block">
               DevFinder
             </span>
+            <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent md:hidden">
+              DevFinder
+            </span>
           </Link>
 
           {user && (
