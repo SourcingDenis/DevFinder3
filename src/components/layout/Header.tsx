@@ -77,7 +77,7 @@ export function Header() {
             onClick={handleLogoClick}
           >
             <Code2 className="h-6 w-6 text-primary group-hover:rotate-12 transition-transform duration-200" />
-            <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent hidden md:block">
               DevFinder
             </span>
           </Link>
