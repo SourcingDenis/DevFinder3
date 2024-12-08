@@ -43,6 +43,53 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
   const [searchExecuted, setSearchExecuted] = useState(false);
   const [noResultsFound, setNoResultsFound] = useState(false);
 
+  // Centralized function to build and normalize search parameters
+  const buildSearchParams = (params: Partial<Omit<UserSearchParams, 'page'>>): URLSearchParams => {
+    const urlParams = new URLSearchParams();
+    
+    // Ensure query is always set, defaulting to a space if empty
+    urlParams.set('query', params.query?.trim() || ' ');
+    
+    // Conditionally add other parameters with type checking
+    if (params.language) urlParams.set('language', params.language);
+    if (params.locations?.length) urlParams.set('locations', params.locations.join(','));
+    if (params.sort) urlParams.set('sort', params.sort);
+    if (params.order) urlParams.set('order', params.order);
+    if (params.per_page) urlParams.set('per_page', params.per_page.toString());
+    if (params.hireable !== undefined) urlParams.set('hireable', params.hireable.toString());
+    
+    // Always reset to first page when building new search params
+    urlParams.set('page', '1');
+    
+    return urlParams;
+  };
+
+  const handleSaveSearch = async () => {
+    if (!user || !lastSearchParams) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('saved_searches')
+        .insert({
+          user_id: user.id,
+          name: searchName || `Search on ${new Date().toLocaleDateString()}`,
+          search_params: lastSearchParams
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setSaveDialogOpen(false);
+      setSearchName('');
+      
+      // Optional: Show a toast or notification that search was saved
+    } catch (error) {
+      console.error('Error saving search:', error);
+      // Optional: Show error notification
+    }
+  };
+
   // Handle URL parameters
   useEffect(() => {
     const query = searchParams.get('query');
@@ -103,7 +150,7 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     setSearchExecuted(true);
     onSearch?.();
     
-    // Build search query string based on available parameters
+    // Build comprehensive search query
     let searchQuery = '';
     if (params.query) {
       searchQuery += params.query;
@@ -115,9 +162,8 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
       searchQuery += ` ${params.locations.map(loc => `location:${loc}`).join(' ')}`;
     }
 
-    // Ensure we have at least an empty string for query if none provided
     const searchParams: Omit<UserSearchParams, 'page'> = {
-      query: searchQuery.trim() || ' ', // Default to space to avoid empty query
+      query: searchQuery.trim() || ' ',
       sort: params.sort || currentSort.value,
       order: params.order || currentSort.direction,
       locations: params.locations,
@@ -128,25 +174,12 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     
     setLastSearchParams(searchParams);
     
-    // Preserve existing URL parameters and update with new search params
-    const urlParams = new URLSearchParams();
-    
-    // Add all non-null search parameters
-    urlParams.set('page', '1'); // Always reset to first page on new search
-    urlParams.set('query', searchParams.query);
-    
-    // Conditionally add other parameters
-    if (searchParams.language) urlParams.set('language', searchParams.language);
-    if (searchParams.locations?.length) urlParams.set('locations', searchParams.locations.join(','));
-    if (searchParams.sort) urlParams.set('sort', searchParams.sort);
-    if (searchParams.order) urlParams.set('order', searchParams.order);
-    if (searchParams.per_page) urlParams.set('per_page', searchParams.per_page.toString());
-    if (searchParams.hireable !== undefined) urlParams.set('hireable', searchParams.hireable.toString());
-    
+    // Use centralized parameter building
+    const urlParams = buildSearchParams(searchParams);
     setSearchParams(urlParams);
     
     try {
-      // Save the search to recent_searches if user is logged in and query exists
+      // Save to recent searches if user is logged in
       if (user && params.query) {
         await supabase
           .from('recent_searches')
@@ -191,20 +224,8 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
       setCurrentPage(page);
 
       // Preserve existing URL parameters and update page
-      const urlParams = new URLSearchParams();
-      
-      // Add all parameters from lastSearchParams
+      const urlParams = buildSearchParams(lastSearchParams);
       urlParams.set('page', page.toString());
-      urlParams.set('query', lastSearchParams.query || ' ');
-      
-      // Conditionally add other parameters
-      if (lastSearchParams.language) urlParams.set('language', lastSearchParams.language);
-      if (lastSearchParams.locations?.length) urlParams.set('locations', lastSearchParams.locations.join(','));
-      if (lastSearchParams.sort) urlParams.set('sort', lastSearchParams.sort);
-      if (lastSearchParams.order) urlParams.set('order', lastSearchParams.order);
-      if (lastSearchParams.per_page) urlParams.set('per_page', lastSearchParams.per_page.toString());
-      if (lastSearchParams.hireable !== undefined) urlParams.set('hireable', lastSearchParams.hireable.toString());
-      
       setSearchParams(urlParams);
     } catch (err) {
       setError('Failed to fetch users. Please try again.');
@@ -298,29 +319,7 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
                         />
                       </div>
                       <Button
-                        onClick={async () => {
-                          if (!user || !searchName.trim()) return;
-                          
-                          try {
-                            const { error } = await supabase
-                              .from('saved_searches')
-                              .insert({
-                                user_id: user.id,
-                                name: searchName.trim(),
-                                search_params: {
-                                  ...lastSearchParams,
-                                  sort: currentSort.value,
-                                  order: currentSort.direction,
-                                },
-                              });
-
-                            if (error) throw error;
-                            setSaveDialogOpen(false);
-                            setSearchName('');
-                          } catch (err) {
-                            console.error('Error saving search:', err);
-                          }
-                        }}
+                        onClick={handleSaveSearch}
                       >
                         Save
                       </Button>

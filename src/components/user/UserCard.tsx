@@ -22,37 +22,37 @@ export function UserCard({
 }: UserCardProps) {
   return (
     <Card className="w-full">
-      <CardContent className="p-4 sm:p-6">
+      <CardContent className="p-4">
         <div className="relative">
           {isSaved && (
             <Button
               variant="ghost"
               size="icon"
-              className="absolute -right-2 -top-2 h-8 w-8 sm:hidden hover:bg-destructive/10 hover:text-destructive"
+              className="absolute right-0 top-0 h-8 w-8 sm:hidden hover:bg-destructive/10 hover:text-destructive"
               onClick={onRemoveSaved}
             >
               <X className="h-4 w-4" />
             </Button>
           )}
-          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <div className="flex gap-4">
             <img 
               src={user.avatar_url} 
               alt={`${user.login}'s avatar`}
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full self-center sm:self-start"
+              className="w-16 h-16 rounded-full flex-shrink-0"
             />
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-col sm:flex-row items-center sm:items-start sm:justify-between gap-4">
-                <div className="min-w-0 text-center sm:text-left">
-                  <h3 className="font-semibold text-lg truncate">
+            <div className="flex-1 min-w-0 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-base truncate">
                     {user.name || user.login}
                   </h3>
                   <a 
                     href={user.html_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-primary flex items-center gap-1 text-sm justify-center sm:justify-start"
+                    className="text-muted-foreground hover:text-primary flex items-center gap-1 text-sm"
                   >
-                    {user.login}
+                    @{user.login}
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
@@ -60,26 +60,27 @@ export function UserCard({
                   user={user}
                   isSaved={isSaved}
                   onRemoveSaved={onRemoveSaved}
+                  className="flex-shrink-0"
                 />
               </div>
 
               {user.bio && (
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-2 text-center sm:text-left">
+                <p className="text-sm text-muted-foreground line-clamp-2">
                   {user.bio}
                 </p>
               )}
 
-              <div className="flex flex-col sm:flex-row flex-wrap gap-y-2 gap-x-4 mt-4 text-sm text-muted-foreground items-center sm:items-start">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
                 {user.company && (
-                  <span className="flex items-center gap-1">
-                    <Building className="h-4 w-4" />
-                    {user.company}
+                  <span className="flex items-center gap-1.5">
+                    <Building className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{user.company}</span>
                   </span>
                 )}
                 {user.location && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {user.location}
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{user.location}</span>
                   </span>
                 )}
                 {user.blog && (
@@ -87,30 +88,26 @@ export function UserCard({
                     href={user.blog.startsWith('http') ? user.blog : `https://${user.blog}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:text-primary"
+                    className="flex items-center gap-1.5 hover:text-primary"
                   >
-                    <LinkIcon className="h-4 w-4" />
-                    Website
+                    <LinkIcon className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">Website</span>
                   </a>
                 )}
                 {user.created_at && (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    Joined {new Date(user.created_at).toLocaleDateString()}
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">Joined {new Date(user.created_at).toLocaleDateString()}</span>
                   </span>
                 )}
               </div>
 
-              <div className="mt-4">
-                <UserEmails username={user.login} />
-              </div>
+              <UserStats user={user} />
+              
+              <UserEmails username={user.login} />
 
-              <div className="mt-4">
-                <UserStats user={user} />
-              </div>
-
-              {user.languages && (
-                <div className="flex flex-wrap gap-2 mt-4">
+              {user.languages && user.languages.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
                   {user.languages.map(lang => (
                     <LanguageBadge key={lang} language={lang} />
                   ))}

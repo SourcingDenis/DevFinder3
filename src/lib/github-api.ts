@@ -3,86 +3,189 @@ import { UserSearchParams, GitHubUser, SearchResponse } from '@/types';
 import { supabase } from './supabase';
 
 const getGithubApi = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session?.provider_token) {
-    console.error('No GitHub token available. Please re-authenticate.');
-    throw new Error('No GitHub token available');
-  }
-
-  const api = axios.create({
-    baseURL: 'https://api.github.com',
-    headers: {
-      Authorization: `Bearer ${session.provider_token}`,
-      Accept: 'application/vnd.github.v3+json',
-      'X-GitHub-Api-Version': '2022-11-28'
-    }
-  });
-
-  return api;
-};
-
-export async function searchUsers(params: UserSearchParams): Promise<SearchResponse<GitHubUser>> {
-  const githubApi = await getGithubApi();
-  
-  // Construct the search query
-  let q = params.query || '';
-  
-  // Add language filter if specified
-  if (params.language) {
-    q += ` language:${params.language}`;
-  }
-
-  // Add location filters if specified
-  if (params.locations && params.locations.length > 0) {
-    q += ` ${params.locations.map(loc => `location:${loc}`).join(' ')}`;
-  }
-
-  // Add followers range if specified
-  if (params.followersMin) {
-    q += ` followers:>=${params.followersMin}`;
-  }
-  if (params.followersMax) {
-    q += ` followers:<=${params.followersMax}`;
-  }
-
-  // Add repositories range if specified
-  if (params.reposMin) {
-    q += ` repos:>=${params.reposMin}`;
-  }
-  if (params.reposMax) {
-    q += ` repos:<=${params.reposMax}`;
-  }
-
   try {
-    const response = await githubApi.get('/search/users', {
-      params: {
-        q,
-        sort: params.sort || 'best-match',
-        order: params.order || 'desc',
-        per_page: params.per_page || 30,
-        page: params.page || 1
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.provider_token) {
+      console.error('No GitHub token available. Attempting to refresh authentication.');
+      // Attempt to refresh the session
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError || !refreshData.session?.provider_token) {
+        console.error('Failed to refresh GitHub authentication token.');
+        throw new Error('Authentication failed. Please sign in again.');
+      }
+    }
+
+    const api = axios.create({
+      baseURL: 'https://api.github.com',
+      headers: {
+        Authorization: `Bearer ${session?.provider_token || ''}`,
+        Accept: 'application/vnd.github.v3+json',
+        'X-GitHub-Api-Version': '2022-11-28'
       }
     });
 
-    const users = await Promise.all(
-      response.data.items.map(async (user: any) => {
-        // Fetch detailed user information
-        const userDetailsResponse = await githubApi.get(`/users/${user.login}`);
-        return {
-          ...userDetailsResponse.data,
-          score: user.score
-        };
-      })
+    // Add response interceptor to handle token refresh
+    api.interceptors.response.use(
+      response => response,
+      async error => {
+        const originalRequest = error.config;
+
+        // Check if the error is due to an unauthorized request
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+            // Attempt to refresh the session
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (refreshError || !refreshData.session?.provider_token) {
+              throw new Error('Failed to refresh authentication');
+            }
+
+            // Update the authorization header
+            originalRequest.headers['Authorization'] = `Bearer ${refreshData.session.provider_token}`;
+            
+            // Retry the original request
+            return axios(originalRequest);
+          } catch (refreshError) {
+            console.error('Failed to refresh token:', refreshError);
+            // Force re-authentication
+            await supabase.auth.signOut();
+            window.location.href = '/'; // Redirect to home/login page
+            return Promise.reject(refreshError);
+          }
+        }
+
+        return Promise.reject(error);
+      }
     );
 
-    return {
-      items: users,
-      total_count: response.data.total_count,
-      incomplete_results: response.data.incomplete_results
-    };
+    return api;
   } catch (error) {
-    console.error('Error searching users:', error);
+    console.error('Error creating GitHub API client:', error);
+    throw error;
+  }
+};
+
+export async function searchUsers(params: UserSearchParams): Promise<SearchResponse<GitHubUser>> {
+  try {
+    const githubApi = await getGithubApi();
+    
+    // Construct the search query
+    let q = params.query || '';
+    
+    // Add language filter if specified
+    if (params.language) {
+      q += ` language:${params.language}`;
+    }
+
+    // Add location filters if specified
+    if (params.locations && params.locations.length > 0) {
+      q += ` ${params.locations.map(loc => `location:${loc}`).join(' ')}`;
+    }
+
+    // Add followers range if specified
+    if (params.followersMin) {
+      q += ` followers:>=${params.followersMin}`;
+    }
+    if (params.followersMax) {
+      q += ` followers:<=${params.followersMax}`;
+    }
+
+    // Add repositories range if specified
+    if (params.reposMin) {
+      q += ` repos:>=${params.reposMin}`;
+    }
+    if (params.reposMax) {
+      q += ` repos:<=${params.reposMax}`;
+    }
+
+    // Add hireable filter
+    if (params.hireable) {
+      q += ' is:hireable';
+    }
+
+    try {
+      const response = await githubApi.get('/search/users', {
+        params: {
+          q,
+          sort: params.sort || 'best-match',
+          order: params.order || 'desc',
+          per_page: params.per_page || 30,
+          page: params.page || 1
+        }
+      });
+
+      // Check for rate limit headers
+      const rateLimitRemaining = response.headers['x-ratelimit-remaining'];
+      const rateLimitReset = response.headers['x-ratelimit-reset'];
+
+      if (rateLimitRemaining && Number(rateLimitRemaining) < 10) {
+        console.warn(`GitHub API rate limit is low. Remaining: ${rateLimitRemaining}. Resets at: ${new Date(Number(rateLimitReset) * 1000)}`);
+      }
+
+      // Fetch detailed user information with error handling
+      const users = await Promise.all(
+        response.data.items.map(async (user: any) => {
+          try {
+            const userDetailsResponse = await githubApi.get(`/users/${user.login}`);
+            return {
+              ...userDetailsResponse.data,
+              score: user.score
+            };
+          } catch (userDetailError) {
+            console.warn(`Could not fetch details for user ${user.login}:`, userDetailError);
+            // Return minimal user information
+            return {
+              login: user.login,
+              id: user.id,
+              avatar_url: user.avatar_url,
+              score: user.score
+            };
+          }
+        })
+      );
+
+      return {
+        items: users,
+        total_count: response.data.total_count,
+        incomplete_results: response.data.incomplete_results
+      };
+    } catch (apiError) {
+      // Specific error handling for GitHub API errors
+      if (apiError.response) {
+        // The request was made and the server responded with a status code
+        console.error('GitHub API Error:', {
+          status: apiError.response.status,
+          data: apiError.response.data,
+          headers: apiError.response.headers
+        });
+
+        // Handle specific error scenarios
+        switch (apiError.response.status) {
+          case 403:
+            throw new Error('GitHub API rate limit exceeded. Please try again later.');
+          case 422:
+            throw new Error('Invalid search query. Please check your search parameters.');
+          case 503:
+            throw new Error('GitHub service is temporarily unavailable. Please try again later.');
+          default:
+            throw new Error(`GitHub API request failed: ${apiError.message}`);
+        }
+      } else if (apiError.request) {
+        // The request was made but no response was received
+        console.error('No response received:', apiError.request);
+        throw new Error('No response from GitHub. Check your internet connection.');
+      } else {
+        // Something happened in setting up the request
+        console.error('Error setting up GitHub API request:', apiError.message);
+        throw apiError;
+      }
+    }
+  } catch (error) {
+    console.error('Unexpected error in searchUsers:', error);
     throw error;
   }
 }

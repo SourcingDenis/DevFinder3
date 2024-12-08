@@ -1,5 +1,7 @@
 import { Search, Users, Download, BookmarkCheck, Github } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { LoggedInHero } from './LoggedInHero';
 
 const features = [
   {
@@ -40,6 +42,12 @@ const item = {
 };
 
 export function Hero() {
+  const { isAuthenticated } = useAuth();
+
+  if (isAuthenticated) {
+    return <LoggedInHero />;
+  }
+
   return (
     <div className="relative overflow-hidden border-b bg-background min-h-[80vh] flex items-center">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-primary/10">
