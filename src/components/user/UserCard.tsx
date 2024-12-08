@@ -47,7 +47,7 @@ export function UserCard({
                   <h3 className="font-semibold text-base truncate flex items-center gap-2">
                     {user.name || user.login}
                     {user.hireable && (
-                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5 bg-green-100 text-green-800">
                         Hireable
                       </Badge>
                     )}
