@@ -1,91 +1,141 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { ThemeToggle } from '../theme/ThemeToggle';
+import { Code2, LogOut, Menu, Settings } from 'lucide-react';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ModeToggle } from '@/components/theme/ModeToggle';
-import { useAuth } from '@/hooks/useAuth';
-import { GitHubLoginButton } from '@/components/auth/GitHubLoginButton';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu } from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { cn } from '@/lib/utils';
-
-const navigation = [
-  { name: 'Search', href: '/search' },
-  { name: 'Saved Profiles', href: '/saved-profiles' },
-  { name: 'Saved Searches', href: '/saved-searches' },
-  { name: 'Settings', href: '/settings' },
-];
+import { supabase } from '@/lib/supabase';
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle 
+} from "@/components/ui/sheet";
+import { GitHubLoginButton } from '@/components/auth/GitHubLoginButton';
 
 export function Header() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
+
+  const handleLogoClick = () => {
+    navigate('/home', { replace: true });
+    setSearchParams({}, { replace: true });
+  };
+
+  const isActive = (path: string) => location.pathname === path;
+
+  const NavLinks = () => (
+    <>
+      <Link
+        to="/search"
+        onClick={() => {
+          setSearchParams({}, { replace: true });
+        }}
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-foreground/80",
+          isActive('/search') ? "text-foreground" : "text-foreground/60"
+        )}
+      >
+        Search
+      </Link>
+      <Link
+        to="/saved-profiles"
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-foreground/80",
+          isActive('/saved-profiles') ? "text-foreground" : "text-foreground/60"
+        )}
+      >
+        Saved Profiles
+      </Link>
+      <Link
+        to="/saved-searches"
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-foreground/80",
+          isActive('/saved-searches') ? "text-foreground" : "text-foreground/60"
+        )}
+      >
+        Saved Searches
+      </Link>
+    </>
+  );
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
+  };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container max-w-screen-2xl mx-auto">
-        <div className="flex h-14 items-center justify-between">
-          <div className="flex gap-8 items-center">
-            <Link to="/" className="font-semibold">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background">
+      <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
+        <div className="flex items-center gap-6">
+          <Link 
+            to="/home"
+            className="flex items-center gap-3 hover:opacity-90 transition-all duration-200 cursor-pointer group"
+            onClick={handleLogoClick}
+          >
+            <Code2 className="h-6 w-6 text-primary group-hover:rotate-12 transition-transform duration-200" />
+            <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               DevFinder
-            </Link>
-            <nav className="hidden md:flex gap-6">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {item.name}
-                </Link>
-              ))}
+            </span>
+          </Link>
+
+          {user && (
+            <nav className="flex-1 hidden md:flex items-center gap-6">
+              <NavLinks />
             </nav>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          {!user && <GitHubLoginButton confetti={false} />}
+          <div className="hidden md:flex items-center gap-4">
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/settings')}
+                className="rounded-full"
+              >
+                <Settings className="h-5 w-5" />
+                <span className="sr-only">Settings</span>
+              </Button>
+            )}
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-4">
-              {user ? (
-                <div className="flex items-center gap-2">
-                  <img
-                    src={user.user_metadata.avatar_url}
-                    alt={user.user_metadata.user_name}
-                    className="w-6 h-6 rounded-full"
-                  />
-                  <span className="text-sm font-medium">
-                    {user.user_metadata.user_name}
-                  </span>
-                </div>
-              ) : (
-                <GitHubLoginButton />
-              )}
-            </div>
-            <ModeToggle />
-            <Sheet open={isOpen} onOpenChange={setIsOpen}>
-              <SheetTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon">
+          {/* Mobile Menu */}
+          {user && (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu className="h-5 w-5" />
+                  <span className="sr-only">Menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-64 sm:w-80">
-                <nav className="flex flex-col gap-4">
-                  {navigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      className={cn(
-                        "flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
-                        isOpen && "text-foreground"
-                      )}
-                      onClick={() => setIsOpen(false)}
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <SheetHeader>
+                  <SheetTitle></SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-4 mt-8">
+                  <NavLinks />
+                  <div className="flex items-center gap-4 mt-4 md:hidden">
+                    <Button
+                      variant="ghost"
+                      size="default"
+                      onClick={handleSignOut}
+                      className="w-full justify-start"
                     >
-                      {item.name}
-                    </Link>
-                  ))}
-                  {!user && (
-                    <GitHubLoginButton className="w-full justify-center" />
-                  )}
+                      <LogOut className="h-5 w-5 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
                 </nav>
               </SheetContent>
             </Sheet>
-          </div>
+          )}
         </div>
       </div>
     </header>

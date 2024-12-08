@@ -1,9 +1,6 @@
 import axios from 'axios';
-import { UserSearchParams, GitHubUser, SearchResponse } from '@/types/github';
+import { UserSearchParams, GitHubUser, SearchResponse } from '@/types';
 import { supabase } from './supabase';
-import { Octokit } from '@octokit/rest';
-
-const octokit = new Octokit();
 
 const getGithubApi = async () => {
   const { data: { session } } = await supabase.auth.getSession();
@@ -29,12 +26,7 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
   const githubApi = await getGithubApi();
   
   // Construct the search query
-  let q = '';
-  
-  // Add main search query
-  if (params.query || params.q) {
-    q += (params.query || params.q);
-  }
+  let q = params.query || '';
   
   // Add language filter if specified
   if (params.language) {
@@ -54,7 +46,7 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
     q += ` followers:<=${params.followersMax}`;
   }
 
-  // Add repos range if specified
+  // Add repositories range if specified
   if (params.reposMin) {
     q += ` repos:>=${params.reposMin}`;
   }
@@ -62,43 +54,32 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
     q += ` repos:<=${params.reposMax}`;
   }
 
-  // Add hireable filter if specified
-  if (params.hireable) {
-    q += ' is:hireable';
-  }
-
-  const searchParams = {
-    q,
-    sort: params.sort,
-    order: params.order,
-    per_page: params.per_page || 30,
-    page: params.page || 1
-  };
-
   try {
-    const response = await githubApi.get<SearchResponse<GitHubUser>>('/search/users', {
-      params: searchParams
+    const response = await githubApi.get('/search/users', {
+      params: {
+        q,
+        sort: params.sort || 'best-match',
+        order: params.order || 'desc',
+        per_page: params.per_page || 30,
+        page: params.page || 1
+      }
     });
 
-    // Transform the response to include additional user details
-    const enrichedUsers = await Promise.all(
-      response.data.items.map(async (user) => {
-        try {
-          const { data: details } = await githubApi.get<GitHubUser>(`/users/${user.login}`);
-          return {
-            ...details,
-            languages: details.languages || []
-          };
-        } catch (error) {
-          console.error(`Error fetching details for user ${user.login}:`, error);
-          return user;
-        }
+    const users = await Promise.all(
+      response.data.items.map(async (user: any) => {
+        // Fetch detailed user information
+        const userDetailsResponse = await githubApi.get(`/users/${user.login}`);
+        return {
+          ...userDetailsResponse.data,
+          score: user.score
+        };
       })
     );
 
     return {
-      ...response.data,
-      items: enrichedUsers
+      items: users,
+      total_count: response.data.total_count,
+      incomplete_results: response.data.incomplete_results
     };
   } catch (error) {
     console.error('Error searching users:', error);
@@ -134,51 +115,6 @@ export async function fetchAllUsers(params: Omit<UserSearchParams, 'page'>): Pro
   }
 
   return allUsers;
-}
-
-export async function searchGitHubUsers(params: UserSearchParams): Promise<SearchResponse<GitHubUser>> {
-  const { q, location, language, sort, order, page = 1, per_page = 30 } = params;
-
-  let query = q;
-  if (location) query += ` location:${location}`;
-  if (language) query += ` language:${language}`;
-
-  const response = await octokit.search.users({
-    q: query,
-    sort,
-    order,
-    page,
-    per_page,
-  });
-
-  return {
-    total_count: response.data.total_count,
-    incomplete_results: response.data.incomplete_results,
-    items: response.data.items.map(transformGitHubUser),
-  };
-}
-
-function transformGitHubUser(user: any): GitHubUser {
-  return {
-    id: user.id,
-    login: user.login,
-    name: user.name,
-    avatar_url: user.avatar_url,
-    html_url: user.html_url,
-    bio: user.bio,
-    blog: user.blog,
-    company: user.company,
-    location: user.location,
-    email: user.email,
-    hireable: user.hireable,
-    twitter_username: user.twitter_username,
-    public_repos: user.public_repos,
-    public_gists: user.public_gists,
-    followers: user.followers,
-    following: user.following,
-    created_at: user.created_at,
-    updated_at: user.updated_at,
-  };
 }
 
 export async function findUserEmail(username: string): Promise<{ email: string | null; source: string | null }> {

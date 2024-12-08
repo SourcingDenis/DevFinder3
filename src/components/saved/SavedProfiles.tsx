@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { UserCard } from '../user/UserCard';
 import { LoadingSpinner } from '../ui/loading-spinner';
-import type { GitHubUser } from '@/types/github';
+import type { GitHubUser } from '@/types';
 
 interface SavedProfile {
   id: number;
@@ -18,45 +19,28 @@ interface SavedProfile {
 }
 
 export function SavedProfiles() {
+  const { user } = useAuth();
   const [profiles, setProfiles] = useState<SavedProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchSavedProfiles = async () => {
+    if (!user) return;
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
-
-      if (!userId) {
-        throw new Error('User not authenticated');
-      }
-
+      // Fetch saved profiles with their enriched emails
       const { data, error } = await supabase
         .from('saved_profiles')
         .select(`
           id, 
-          user_id,
           github_username, 
           github_data, 
           created_at
         `)
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProfiles(data.map((profile: any) => ({
-        id: profile.id,
-        user_id: profile.user_id,
-        github_username: profile.github_username,
-        github_data: {
-          ...profile.github_data,
-          public_gists: profile.github_data.public_gists || 0,
-          updated_at: profile.github_data.updated_at || profile.github_data.created_at,
-          languages: profile.github_data.languages || [],
-          topLanguage: profile.github_data.topLanguage || null,
-          available_for_hire: profile.github_data.available_for_hire || false
-        } as GitHubUser,
-        created_at: profile.created_at,
-      })));
+      setProfiles(data || []);
     } catch (error) {
       console.error('Error fetching saved profiles:', error);
       if (error instanceof Error) {
@@ -74,13 +58,21 @@ export function SavedProfiles() {
 
   useEffect(() => {
     fetchSavedProfiles();
-  }, []);
+  }, [user]);
 
   const handleProfileRemove = (removedProfileLogin: string) => {
     setProfiles(currentProfiles => 
       currentProfiles.filter(profile => profile.github_username !== removedProfileLogin)
     );
   };
+
+  if (!user) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Please sign in to view saved profiles</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -99,7 +91,9 @@ export function SavedProfiles() {
       {profiles.map((profile) => (
         <UserCard 
           key={profile.id} 
-          user={profile.github_data}
+          user={{
+            ...profile.github_data,
+          }} 
           isSaved={true} 
           onRemoveSaved={() => handleProfileRemove(profile.github_username)}
         />

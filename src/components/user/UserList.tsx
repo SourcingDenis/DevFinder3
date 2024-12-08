@@ -1,5 +1,5 @@
 import React from 'react';
-import { GitHubUser } from '@/types/github';
+import { GitHubUser } from '@/types';
 import { UserCard } from './UserCard';
 
 interface UserListProps {

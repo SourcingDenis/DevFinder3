@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Header } from '@/components/layout/Header';
 import { Home } from '@/pages/Home';
 import { Search } from '@/pages/Search';
@@ -9,6 +10,7 @@ import { SavedSearches } from '@/pages/SavedSearches';
 import { Settings } from '@/pages/Settings';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthCallback } from '@/pages/auth/callback';
+import { Router } from '@/Router';
 
 function Footer() {
   return (
