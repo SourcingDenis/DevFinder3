@@ -19,9 +19,9 @@ export function LoggedInHero() {
             Start Searching
           </Button>
         </Link>
-        <Link to="/saved" className="inline-block">
+        <Link to="/bookmarks" className="inline-block">
           <Button variant="secondary">
-            View Saved Profiles
+            Saved Profiles
           </Button>
         </Link>
       </div>
