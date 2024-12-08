@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import { GitHubLoginButton } from '@/components/auth/GitHubLoginButton';
 import { 
   Sheet, 
   SheetContent, 
@@ -12,7 +13,6 @@ import {
   SheetHeader,
   SheetTitle 
 } from "@/components/ui/sheet";
-import { GitHubLoginButton } from '@/components/auth/GitHubLoginButton';
 
 export function Header() {
   const navigate = useNavigate();
@@ -91,7 +91,7 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          {!user && <GitHubLoginButton confetti={true} />}
+          {!user && <GitHubLoginButton variant="header" confetti={true} />}
           <div className="hidden md:flex items-center gap-4">
             {user && (
               <Button

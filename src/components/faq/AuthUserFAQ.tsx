@@ -77,7 +77,7 @@ export function AuthUserFAQ() {
       <div className="space-y-4">
         {faqItems.map((item) => (
           <Card key={item.id}>
-            <CardHeader className="p-4">
+            <CardHeader className="p-6">
               <Button
                 variant="ghost"
                 className="w-full flex justify-between items-center"
@@ -92,7 +92,7 @@ export function AuthUserFAQ() {
               </Button>
             </CardHeader>
             {openItem === item.id && (
-              <CardContent className="px-4 pb-4">
+              <CardContent className="px-6 pb-6">
                 <ul className="list-disc pl-6 space-y-2">
                   {item.answer.map((point, index) => (
                     <li key={index} className="text-sm">{point}</li>

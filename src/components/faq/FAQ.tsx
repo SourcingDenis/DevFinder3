@@ -134,7 +134,7 @@ export function FAQ() {
             <Button
               variant="ghost"
               className={cn(
-                "w-full px-4 py-2 text-left flex justify-between items-center",
+                "w-full px-6 py-4 text-left flex justify-between items-center",
                 "hover:bg-accent hover:text-accent-foreground",
                 expandedIndex === index && "bg-accent text-accent-foreground"
               )}
@@ -159,7 +159,7 @@ export function FAQ() {
               </svg>
             </Button>
             {expandedIndex === index && (
-              <div className="px-4 py-3 bg-background/50">
+              <div className="px-6 py-5 bg-background/50">
                 <p className="text-muted-foreground">{item.answer}</p>
               </div>
             )}
