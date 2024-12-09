@@ -44,6 +44,6 @@ export interface SavedProfile {
   id: number;
   user_id: string;
   github_username: string;
-  github_data: string;
+  github_data: GitHubUser;
   created_at: string;
 }

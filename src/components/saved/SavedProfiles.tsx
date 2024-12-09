@@ -30,14 +30,14 @@ export function SavedProfiles() {
         return;
       }
 
-      // Ensure the data matches SavedProfile type
-      const mappedProfiles: SavedProfile[] = data.map(profile => ({
-        id: profile.id,
-        user_id: profile.user_id,
-        github_username: profile.github_username,
-        github_data: profile.github_data,
-        created_at: profile.created_at
-      }));
+      // Validate the profiles
+      const mappedProfiles: SavedProfile[] = data.filter((profile): profile is SavedProfile => {
+        // Ensure the profile has the required GitHub user data
+        return profile.github_data && 
+               typeof profile.github_data === 'object' && 
+               'login' in profile.github_data && 
+               'avatar_url' in profile.github_data;
+      });
 
       setProfiles(mappedProfiles);
       setIsLoading(false);
@@ -117,7 +117,7 @@ export function SavedProfiles() {
       {profiles.map((profile) => (
         <UserCard 
           key={profile.id} 
-          user={JSON.parse(profile.github_data)} 
+          user={profile.github_data} 
           isSaved={true} 
           onRemove={() => handleRemoveSavedProfile(profile.github_username)}
         />
