@@ -9,9 +9,6 @@ import { SavedSearches } from '@/pages/SavedSearches';
 import { Settings } from '@/pages/Settings';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthCallback } from '@/pages/auth/callback';
-import { ReleaseNotes } from './pages/ReleaseNotes';
-import { ProductRoadmap } from './pages/ProductRoadmap';
-import { FAQ } from './pages/FAQ';
 
 function Footer() {
   return (
@@ -19,12 +16,6 @@ function Footer() {
       <div className="container mx-auto flex justify-center items-center space-x-4">
         <Link to="/roadmap" className="hover:text-primary transition-colors">
           Product Roadmap
-        </Link>
-        <Link to="/release-notes" className="hover:text-primary transition-colors">
-          Release Notes
-        </Link>
-        <Link to="/faq" className="hover:text-primary transition-colors">
-          FAQ
         </Link>
         <a 
           href="https://github.com/yourusername/devfinder" 
@@ -60,9 +51,6 @@ function AppContent() {
           <Route path="/bookmarks" element={<SavedProfiles />} />
           <Route path="/saved-searches" element={<SavedSearches />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/release-notes" element={<ReleaseNotes />} />
-          <Route path="/roadmap" element={<ProductRoadmap />} />
-          <Route path="/faq" element={<FAQ />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
