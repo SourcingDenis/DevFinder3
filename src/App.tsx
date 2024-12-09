@@ -32,8 +32,8 @@ function AppContent() {
       <main className="flex-1 w-full container max-w-screen-2xl mx-auto px-4 py-6">
         <Routes>
           <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/search" element={<Search />} />
+          <Route path="/home" element={<Navigate to="/search" replace />} />
+          <Route path="/search" element={<Navigate to="/search" replace />} />
           <Route path="/bookmarks" element={<SavedProfiles />} />
           <Route path="/saved-searches" element={<SavedSearches />} />
           <Route path="/auth/callback" element={<AuthCallback />} />

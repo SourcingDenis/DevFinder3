@@ -5,12 +5,12 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
-  CheckCircle2, 
-  Clock, 
-  Rocket, 
-  Star 
+  SearchIcon, 
+  GithubIcon, 
+  SaveIcon, 
+  DollarSignIcon, 
+  HelpCircleIcon 
 } from 'lucide-react';
 import { 
   Accordion, 
@@ -32,7 +32,7 @@ export const FAQ: React.FC = () => {
   const faqCategories: FAQCategory[] = [
     {
       title: 'Search Functionality',
-      icon: Search,
+      icon: SearchIcon,
       questions: [
         {
           question: "What makes DevFinder's search different from other developer search platforms?",
@@ -69,7 +69,7 @@ export const FAQ: React.FC = () => {
     },
     {
       title: 'GitHub Integration',
-      icon: Github,
+      icon: GithubIcon,
       questions: [
         {
           question: "How does GitHub authentication work?",
@@ -96,7 +96,7 @@ export const FAQ: React.FC = () => {
     },
     {
       title: 'Profile Management',
-      icon: Save,
+      icon: SaveIcon,
       questions: [
         {
           question: "How can I save and manage developer profiles?",
@@ -123,7 +123,7 @@ export const FAQ: React.FC = () => {
     },
     {
       title: 'Pricing & Access',
-      icon: DollarSign,
+      icon: DollarSignIcon,
       questions: [
         {
           question: "Is DevFinder currently free?",
@@ -154,7 +154,7 @@ export const FAQ: React.FC = () => {
     },
     {
       title: 'General Questions',
-      icon: HelpCircle,
+      icon: HelpCircleIcon,
       questions: [
         {
           question: "How often is DevFinder updated?",
