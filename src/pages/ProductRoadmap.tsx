@@ -20,7 +20,7 @@ type RoadmapItem = {
   icon: React.ElementType;
 };
 
-const ProductRoadmap: React.FC = () => {
+export const ProductRoadmap: React.FC = () => {
   const completedFeatures: RoadmapItem[] = [
     {
       title: 'Advanced Search Implementation',
@@ -200,5 +200,3 @@ const ProductRoadmap: React.FC = () => {
     </div>
   );
 };
-
-export default ProductRoadmap;

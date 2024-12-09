@@ -1,24 +1,23 @@
-import React, { useState } from 'react';
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
-} from '@/components/ui/accordion';
+import React from 'react';
 import { 
   Card, 
   CardContent, 
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
-  Search, 
-  Github, 
-  Save, 
-  Database, 
-  DollarSign, 
-  HelpCircle 
+  CheckCircle2, 
+  Clock, 
+  Rocket, 
+  Star 
 } from 'lucide-react';
+import { 
+  Accordion, 
+  AccordionContent, 
+  AccordionItem, 
+  AccordionTrigger 
+} from '@/components/ui/accordion';
 
 type FAQCategory = {
   title: string;
@@ -29,7 +28,7 @@ type FAQCategory = {
   }[];
 };
 
-const FAQ: React.FC = () => {
+export const FAQ: React.FC = () => {
   const faqCategories: FAQCategory[] = [
     {
       title: 'Search Functionality',
@@ -232,5 +231,3 @@ const FAQ: React.FC = () => {
     </div>
   );
 };
-
-export default FAQ;
