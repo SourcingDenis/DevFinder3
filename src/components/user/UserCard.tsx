@@ -35,19 +35,23 @@ export function UserCard({
               <X className="h-4 w-4" />
             </Button>
           )}
-          <div className="flex gap-6">
+          <div className="flex gap-6 relative">
+            {/* Save button in top right corner */}
+            <div className="absolute right-0 top-0">
+              <SaveProfileButton
+                user={user}
+                isSaved={isSaved}
+                onRemove={onRemove}
+                className=""
+              />
+            </div>
+
             {/* Avatar section */}
             <div className="flex flex-col items-center gap-2">
               <img 
                 src={user.avatar_url} 
                 alt={`${user.login}'s avatar`}
                 className="w-20 h-20 rounded-full ring-2 ring-border/50"
-              />
-              <SaveProfileButton
-                user={user}
-                isSaved={isSaved}
-                onRemove={onRemove}
-                className="w-full"
               />
             </div>
 
