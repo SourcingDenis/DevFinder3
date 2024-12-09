@@ -36,34 +36,34 @@ const FAQ: React.FC = () => {
       icon: Search,
       questions: [
         {
-          question: 'What makes DevFinder's search different from other developer search platforms?',
+          question: "What makes DevFinder's search different from other developer search platforms?",
           answer: [
-            'DevFinder offers an advanced, intelligent search algorithm that goes beyond simple keyword matching.',
-            'Our search supports complex, multi-parameter queries that allow you to find developers with extremely specific skill combinations.',
-            'We use intelligent matching that considers not just exact skills, but related technologies and expertise levels.'
+            "DevFinder offers an advanced, intelligent search algorithm that goes beyond simple keyword matching.",
+            "Our search supports complex, multi-parameter queries that allow you to find developers with extremely specific skill combinations.",
+            "We use intelligent matching that considers not just exact skills, but related technologies and expertise levels."
           ]
         },
         {
-          question: 'How precise are the search results?',
+          question: "How precise are the search results?",
           answer: [
-            'Our search algorithm provides near-surgical precision in developer discovery.',
-            'You can filter developers by multiple criteria simultaneously:',
-            '- Programming languages',
-            '- Framework expertise',
-            '- Years of experience',
-            '- Geographic location',
-            '- Open-source contributions',
-            '- Technology stack preferences'
+            "Our search algorithm provides near-surgical precision in developer discovery.",
+            "You can filter developers by multiple criteria simultaneously:",
+            "- Programming languages",
+            "- Framework expertise",
+            "- Years of experience",
+            "- Geographic location",
+            "- Open-source contributions",
+            "- Technology stack preferences"
           ]
         },
         {
-          question: 'Can I save and reuse my search queries?',
+          question: "Can I save and reuse my search queries?",
           answer: [
-            'Absolutely! DevFinder allows you to:',
-            '- Save complex search configurations',
-            '- Export and import search queries',
-            '- Create personalized search collections',
-            '- Quickly revisit and modify previous searches'
+            "Absolutely! DevFinder allows you to:",
+            "- Save complex search configurations",
+            "- Export and import search queries",
+            "- Create personalized search collections",
+            "- Quickly revisit and modify previous searches"
           ]
         }
       ]
@@ -73,24 +73,24 @@ const FAQ: React.FC = () => {
       icon: Github,
       questions: [
         {
-          question: 'How does GitHub authentication work?',
+          question: "How does GitHub authentication work?",
           answer: [
-            'DevFinder provides a seamless, secure GitHub OAuth authentication process:',
-            '- One-click login using your GitHub credentials',
-            '- Automatic profile information retrieval',
-            '- Secure, token-based authentication',
-            '- No need to manually enter profile details'
+            "DevFinder provides a seamless, secure GitHub OAuth authentication process:",
+            "- One-click login using your GitHub credentials",
+            "- Automatic profile information retrieval",
+            "- Secure, token-based authentication",
+            "- No need to manually enter profile details"
           ]
         },
         {
-          question: 'What GitHub data can I access?',
+          question: "What GitHub data can I access?",
           answer: [
-            'We retrieve comprehensive GitHub profile information:',
-            '- Public repositories',
-            '- Contribution history',
-            '- Technology stack',
-            '- Open-source project involvement',
-            '- Detailed activity metrics'
+            "We retrieve comprehensive GitHub profile information:",
+            "- Public repositories",
+            "- Contribution history",
+            "- Technology stack",
+            "- Open-source project involvement",
+            "- Detailed activity metrics"
           ]
         }
       ]
@@ -100,24 +100,24 @@ const FAQ: React.FC = () => {
       icon: Save,
       questions: [
         {
-          question: 'How can I save and manage developer profiles?',
+          question: "How can I save and manage developer profiles?",
           answer: [
-            'DevFinder offers robust profile management:',
-            '- Save unlimited developer profiles',
-            '- Add personal notes and tags',
-            '- Organize profiles into custom collections',
-            '- Quick access to saved profiles',
-            '- Local secure storage'
+            "DevFinder offers robust profile management:",
+            "- Save unlimited developer profiles",
+            "- Add personal notes and tags",
+            "- Organize profiles into custom collections",
+            "- Quick access to saved profiles",
+            "- Local secure storage"
           ]
         },
         {
-          question: 'Can I export or share saved profiles?',
+          question: "Can I export or share saved profiles?",
           answer: [
-            'Profile export and sharing features are currently in development.',
-            'Future updates will include:',
-            '- CSV/JSON export',
-            '- Shareable profile links',
-            '- Team collaboration features'
+            "Profile export and sharing features are currently in development.",
+            "Future updates will include:",
+            "- CSV/JSON export",
+            "- Shareable profile links",
+            "- Team collaboration features"
           ]
         }
       ]
@@ -127,28 +127,28 @@ const FAQ: React.FC = () => {
       icon: DollarSign,
       questions: [
         {
-          question: 'Is DevFinder currently free?',
+          question: "Is DevFinder currently free?",
           answer: [
-            'Yes, DevFinder is completely free during our initial launch phase.',
-            'We are committed to providing value to our early users.'
+            "Yes, DevFinder is completely free during our initial launch phase.",
+            "We are committed to providing value to our early users."
           ]
         },
         {
-          question: 'What are your future pricing plans?',
+          question: "What are your future pricing plans?",
           answer: [
-            'We plan to introduce tiered pricing with the following model:',
-            '- Free Tier: Basic search and profile management',
-            '- Pro Tier: Advanced search, unlimited saves, priority support',
-            '- Enterprise Tier: Custom integrations, team features, dedicated support',
-            'Pricing will be transparently communicated before implementation.'
+            "We plan to introduce tiered pricing with the following model:",
+            "- Free Tier: Basic search and profile management",
+            "- Pro Tier: Advanced search, unlimited saves, priority support",
+            "- Enterprise Tier: Custom integrations, team features, dedicated support",
+            "Pricing will be transparently communicated before implementation."
           ]
         },
         {
-          question: 'Will existing features remain free?',
+          question: "Will existing features remain free?",
           answer: [
-            'Our core search, GitHub authentication, and basic profile management will remain free.',
-            'Advanced features will be available in paid tiers.',
-            'We prioritize providing value to our community.'
+            "Our core search, GitHub authentication, and basic profile management will remain free.",
+            "Advanced features will be available in paid tiers.",
+            "We prioritize providing value to our community."
           ]
         }
       ]
@@ -158,24 +158,24 @@ const FAQ: React.FC = () => {
       icon: HelpCircle,
       questions: [
         {
-          question: 'How often is DevFinder updated?',
+          question: "How often is DevFinder updated?",
           answer: [
-            'We release updates monthly, with:',
-            '- New features',
-            '- Performance improvements',
-            '- Bug fixes',
-            'Check our Roadmap and Release Notes for the latest updates!'
+            "We release updates monthly, with:",
+            "- New features",
+            "- Performance improvements",
+            "- Bug fixes",
+            "Check our Roadmap and Release Notes for the latest updates!"
           ]
         },
         {
-          question: 'How do you ensure data privacy?',
+          question: "How do you ensure data privacy?",
           answer: [
-            'Data privacy is our top priority:',
-            '- We only access publicly available GitHub data',
-            '- Secure OAuth authentication',
-            '- No storage of sensitive personal information',
-            '- Compliance with GitHub API terms of service',
-            '- Transparent data handling practices'
+            "Data privacy is our top priority:",
+            "- We only access publicly available GitHub data",
+            "- Secure OAuth authentication",
+            "- No storage of sensitive personal information",
+            "- Compliance with GitHub API terms of service",
+            "- Transparent data handling practices"
           ]
         }
       ]
