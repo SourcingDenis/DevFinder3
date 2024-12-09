@@ -40,10 +40,19 @@ export interface SearchResponse<T> {
   incomplete_results?: boolean;
 }
 
+export interface ProfileList {
+  id: number;
+  user_id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+}
+
 export interface SavedProfile {
   id: number;
   user_id: string;
   github_username: string;
   github_data: GitHubUser;
   created_at: string;
+  list_id?: number;
 }

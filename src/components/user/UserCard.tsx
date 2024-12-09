@@ -1,28 +1,35 @@
-import type { GitHubUser } from '@/types';
+import React, { forwardRef } from 'react';
+import type { GitHubUser, SavedProfile } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { UserStats } from './UserStats';
-import { LanguageBadge } from './LanguageBadge';
 import { SaveProfileButton } from './SaveProfileButton';
-import { UserEmails } from './UserEmails';
-import { ExternalLink, MapPin, Building, Link as LinkIcon, Calendar, X } from 'lucide-react';
+import { ExternalLink, Calendar, X } from 'lucide-react';
 
-type UserCardProps = {
+type UserCardBaseProps = {
   user: GitHubUser;
-  isSaved?: boolean;
-  onRemove?: () => void;
+  onSave?: (profile: SavedProfile) => void;
+  onRemove?: (githubUsername: string) => void;
   className?: string;
+  listName?: string;
+  isSaved?: boolean;
 };
 
-export function UserCard({ 
+type UserCardProps = UserCardBaseProps & React.ComponentProps<typeof Card>;
+
+export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: boolean }>(({ 
   user, 
-  isSaved, 
+  onSave, 
   onRemove, 
-  className 
-}: UserCardProps) {
+  className = '', 
+  listName,
+  isSaved = false,
+  ...props 
+}, ref) => {
+  console.log('UserCard Props:', { user: user.login, listName, isSaved });
+
   return (
-    <Card className={className}>
+    <Card ref={ref} className={className} {...props}>
       <CardContent className="p-4">
         <div className="relative">
           {isSaved && (
@@ -30,7 +37,7 @@ export function UserCard({
               variant="ghost"
               size="icon"
               className="absolute right-0 top-0 h-8 w-8 sm:hidden hover:bg-destructive/10 hover:text-destructive"
-              onClick={onRemove}
+              onClick={() => onRemove?.(user.login)}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -41,6 +48,7 @@ export function UserCard({
               <SaveProfileButton
                 user={user}
                 isSaved={isSaved}
+                onSave={onSave}
                 onRemove={onRemove}
                 className=""
               />
@@ -67,6 +75,11 @@ export function UserCard({
                     Hireable
                   </Badge>
                 )}
+                {listName && (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    {listName}
+                  </Badge>
+                )}
               </div>
 
               {/* Username and join date */}
@@ -87,59 +100,10 @@ export function UserCard({
                   </span>
                 )}
               </div>
-
-              {/* Bio section */}
-              {user.bio && (
-                <p className="text-sm text-muted-foreground mb-4">
-                  {user.bio}
-                </p>
-              )}
-
-              {/* Stats section */}
-              <UserStats user={user} />
-
-              {/* Location and contact info */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 text-sm text-muted-foreground">
-                {user.location && (
-                  <span className="flex items-center gap-2 truncate col-span-2">
-                    <MapPin className="h-4 w-4 flex-shrink-0 text-primary/70" />
-                    <span className="truncate">{user.location}</span>
-                  </span>
-                )}
-                {user.company && (
-                  <span className="flex items-center gap-2 truncate">
-                    <Building className="h-4 w-4 flex-shrink-0 text-primary/70" />
-                    <span className="truncate">{user.company}</span>
-                  </span>
-                )}
-                {user.blog && (
-                  <a 
-                    href={user.blog.startsWith('http') ? user.blog : `https://${user.blog}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 hover:text-primary truncate"
-                  >
-                    <LinkIcon className="h-4 w-4 flex-shrink-0 text-primary/70" />
-                    <span className="truncate">{user.blog}</span>
-                  </a>
-                )}
-              </div>
-
-              {/* Languages and emails section */}
-              <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t">
-                {user.languages && user.languages.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 flex-1">
-                    {user.languages.map((lang) => (
-                      <LanguageBadge key={lang} language={lang} />
-                    ))}
-                  </div>
-                )}
-                <UserEmails username={user.login} />
-              </div>
             </div>
           </div>
         </div>
       </CardContent>
     </Card>
   );
-}
+});

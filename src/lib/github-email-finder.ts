@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { discoverGitHubEmails } from '@/lib/api-utils';
 
 interface EmailFinderResult {
   emails: string[];
@@ -21,20 +22,20 @@ export async function findGitHubEmails(username: string): Promise<EmailFinderRes
   }
 
   // If not found, try to discover from GitHub
-  const emails = await discoverGitHubEmails(username);
+  const discoveredEmails: EmailFinderResult = await discoverGitHubEmails(username);
   
-  if (emails.length > 0) {
+  if (discoveredEmails.emails.length > 0) {
     // Get current user's ID
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     
     if (!currentUser?.id) {
       console.error('No authenticated user found');
-      return { emails, source: 'github_commit' };
+      return { emails: discoveredEmails.emails, source: 'github_commit' };
     }
 
     // Store discovered emails
     const { error } = await supabase.from('enriched_emails').insert(
-      emails.map(email => ({
+      discoveredEmails.emails.map(email => ({
         github_username: username,
         email,
         source: 'github_commit',
@@ -44,11 +45,12 @@ export async function findGitHubEmails(username: string): Promise<EmailFinderRes
 
     if (error) console.error('Error storing emails:', error);
 
-    return { emails, source: 'github_commit' };
+    return { emails: discoveredEmails.emails, source: 'github_commit' };
   }
 
   // If no emails found, generate one and store it
   const generatedEmail = `${username}@gmail.com`;
+  const generatedEmails = [generatedEmail];
   
   // Get current user's ID
   const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -64,54 +66,7 @@ export async function findGitHubEmails(username: string): Promise<EmailFinderRes
     if (error) console.error('Error storing generated email:', error);
   }
 
-  return { emails: [generatedEmail], source: 'generated' };
+  return { emails: generatedEmails, source: 'generated' };
 }
 
-async function discoverGitHubEmails(username: string): Promise<string[]> {
-  try {
-    // First try to get emails from user's repositories
-    const emails = new Set<string>();
-    
-    // Get repositories page
-    const reposResponse = await fetch(`https://api.github.com/users/${username}/repos?sort=pushed&per_page=5`, {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'DevFinder'
-      }
-    });
-    
-    if (!reposResponse.ok) {
-      throw new Error(`Failed to fetch repos: ${reposResponse.statusText}`);
-    }
-    
-    const repos = await reposResponse.json();
-    
-    // For each repository, get commit patches
-    for (const repo of repos) {
-      const commitsResponse = await fetch(`https://api.github.com/repos/${username}/${repo.name}/commits?per_page=3`, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'DevFinder'
-        }
-      });
-      
-      if (!commitsResponse.ok) {
-        console.warn(`Failed to fetch commits for ${repo.name}: ${commitsResponse.statusText}`);
-        continue;
-      }
-      
-      const commits = await commitsResponse.json();
-      
-      for (const commit of commits) {
-        if (commit.commit?.author?.email && !commit.commit.author.email.includes('users.noreply.github')) {
-          emails.add(commit.commit.author.email);
-        }
-      }
-    }
-
-    return Array.from(emails);
-  } catch (error) {
-    console.error('Error discovering emails:', error);
-    return [];
-  }
-}
+export { discoverGitHubEmails };

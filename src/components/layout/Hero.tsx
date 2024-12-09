@@ -14,10 +14,10 @@ export function Hero() {
       dark:from-primary/30 dark:via-background/90 dark:to-primary/20
       rounded-2xl">
       <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
-        GitHub User Search on Steroids
+        DevFinder: Revolutionize Your GitHub User Search
       </h1>
       <p className="text-base sm:text-xl text-muted-foreground mb-6 sm:mb-8">
-        Find, filter, and connect with developers worldwide
+        Take your GitHub user search to the next level with DevFinder—the ultimate tool for finding, filtering, and connecting with developers across the globe.
       </p>
       <div className="flex justify-center mt-8 mb-12 sm:mt-12 sm:mb-20">
         <svg 
@@ -62,8 +62,8 @@ export function Hero() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">Beautiful Search UX</h3>
-          <p className="text-xs sm:text-sm text-muted-foreground">Modern, intuitive interface for effortless GitHub user discovery</p>
+          <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">Powerful Search, Simplified</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">Experience a sleek, modern interface designed for effortless GitHub user discovery. Say goodbye to clunky tools and hello to smooth, intuitive searches.</p>
         </div>
 
         {/* Save Searches */}
@@ -73,8 +73,8 @@ export function Hero() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
           </div>
-          <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">Save Searches</h3>
-          <p className="text-xs sm:text-sm text-muted-foreground">Store and organize your favorite search queries for quick access</p>
+          <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">Save Your Searches</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">Organize your favorite queries and access them instantly whenever you need. No more retyping or losing track of your search efforts.</p>
         </div>
 
         {/* CSV Export */}
@@ -84,8 +84,8 @@ export function Hero() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">CSV Export</h3>
-          <p className="text-xs sm:text-sm text-muted-foreground">Export search results with complete user data and email contacts</p>
+          <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">Seamless CSV Exports</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">Download complete search results, including user data and email contacts, in CSV format. Perfect for integrating into your existing workflows or tools.</p>
         </div>
 
         {/* Upcoming Features */}
@@ -95,8 +95,8 @@ export function Hero() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
           </div>
-          <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">Coming Soon</h3>
-          <p className="text-xs sm:text-sm text-muted-foreground">Search alerts and outreach management for Gmail/Outlook</p>
+          <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">Coming Soon: Smart Features</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">Stay ahead with upcoming updates like personalized search alerts and outreach management compatible with Gmail and Outlook.</p>
         </div>
       </div>
     </div>

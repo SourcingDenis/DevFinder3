@@ -5,6 +5,7 @@ import { LocationTags } from '@/components/search/LocationTags';
 import { Search } from 'lucide-react';
 import type { UserSearchParams } from '@/types';
 import { useSearchParams } from 'react-router-dom';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface SearchFormProps {
   onSearch: (params: Omit<UserSearchParams, 'page'>) => void;
@@ -18,6 +19,11 @@ export function SearchForm({ onSearch }: SearchFormProps) {
   const [locations, setLocations] = useState<string[]>(
     searchParams.get('locations')?.split(',').filter(Boolean) || []
   );
+
+  // Use debounce to improve input responsiveness
+  const debouncedQuery = useDebounce(query, 300);
+  const debouncedLanguage = useDebounce(language, 300);
+  const debouncedLocations = useDebounce(locations, 300);
 
   useEffect(() => {
     const urlQuery = searchParams.get('query');
@@ -41,7 +47,6 @@ export function SearchForm({ onSearch }: SearchFormProps) {
         const newLocations = [...locations, newLocation];
         setLocations(newLocations);
         setLocationInput('');
-        handleSearch(query, language, newLocations);
       }
     }
   };
@@ -49,7 +54,6 @@ export function SearchForm({ onSearch }: SearchFormProps) {
   const handleRemoveLocation = (locationToRemove: string): void => {
     const newLocations = locations.filter((loc: string): boolean => loc !== locationToRemove);
     setLocations(newLocations);
-    handleSearch(query, language, newLocations);
   };
 
   const handleSearch = (
@@ -78,7 +82,7 @@ export function SearchForm({ onSearch }: SearchFormProps) {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    handleSearch(query, language, locations);
+    handleSearch(debouncedQuery, debouncedLanguage, debouncedLocations);
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {

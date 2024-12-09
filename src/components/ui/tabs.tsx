@@ -3,9 +3,16 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
 
+// Lazy load tab content
+const LazyTabContent = React.lazy(() => 
+  import('./LazyTabContent').then(module => ({ 
+    default: module.LazyTabContent 
+  }))
+)
+
 const Tabs = TabsPrimitive.Root
 
-const TabsList = React.forwardRef<
+const TabsList = React.memo(React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
@@ -17,10 +24,10 @@ const TabsList = React.forwardRef<
     )}
     {...props}
   />
-))
+)))
 TabsList.displayName = TabsPrimitive.List.displayName
 
-const TabsTrigger = React.forwardRef<
+const TabsTrigger = React.memo(React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
 >(({ className, ...props }, ref) => (
@@ -32,27 +39,37 @@ const TabsTrigger = React.forwardRef<
     )}
     {...props}
   />
-))
+)))
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
 
-const TabsContent = React.forwardRef<
+const TabsContent = React.memo(React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
-    ref={ref}
-    className={cn(
-      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-      className
-    )}
-    {...props}
-  />
-))
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content> & { 
+    tabId?: string 
+  }
+>(({ className, tabId, ...props }, ref) => (
+  <React.Suspense fallback={
+    <div className="p-4 text-muted-foreground">
+      Loading tab content...
+    </div>
+  }>
+    {tabId && <LazyTabContent tabId={tabId} />}
+    <TabsPrimitive.Content
+      ref={ref}
+      className={cn(
+        "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        className
+      )}
+      {...props}
+    />
+  </React.Suspense>
+)))
 TabsContent.displayName = TabsPrimitive.Content.displayName
 
-export {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent
+export { 
+  Tabs as TabsRoot, 
+  TabsList, 
+  TabsTrigger, 
+  TabsContent,
+  LazyTabContent
 }

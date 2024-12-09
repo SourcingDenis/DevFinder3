@@ -1,0 +1,57 @@
+.product-roadmap-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: var(--background);
+  border-radius: 8px;
+}
+
+.roadmap-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.milestone {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.3s ease;
+}
+
+.milestone:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+}
+
+.milestone .milestone-details {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.milestone .status {
+  font-weight: bold;
+}
+
+.milestone.completed {
+  background-color: rgba(0, 255, 0, 0.1);
+  border-color: rgba(0, 255, 0, 0.3);
+}
+
+.milestone.in-progress {
+  background-color: rgba(255, 165, 0, 0.1);
+  border-color: rgba(255, 165, 0, 0.3);
+}
+
+.milestone.planned {
+  background-color: rgba(0, 0, 255, 0.1);
+  border-color: rgba(0, 0, 255, 0.3);
+}
+
+.milestone.future {
+  background-color: rgba(128, 128, 128, 0.1);
+  border-color: rgba(128, 128, 128, 0.3);
+}

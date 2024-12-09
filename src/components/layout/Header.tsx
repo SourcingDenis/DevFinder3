@@ -90,6 +90,20 @@ export function Header() {
               <NavLinks />
             </nav>
           )}
+
+          {!user && (
+            <Link
+              to="/roadmap"
+              className={cn(
+                "text-sm font-medium transition-colors hover:text-foreground/80",
+                isActive('/roadmap') ? "text-foreground" : "text-foreground/60"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                Roadmap
+              </div>
+            </Link>
+          )}
         </div>
 
         <div className="flex items-center gap-4">

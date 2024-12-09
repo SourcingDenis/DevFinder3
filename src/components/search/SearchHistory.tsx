@@ -30,23 +30,24 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
         .from('recent_searches')
         .select('id, query, search_params, created_at')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10); // Fetch more initially to allow for deduplication
 
       if (error) {
         console.error('Error fetching recent searches:', error);
         return;
       }
 
-      // Deduplicate searches by comparing all search parameters
-      const uniqueSearches = data?.reduce((acc: RecentSearch[], curr) => {
-        if (!acc.some(search => 
-          JSON.stringify(search.search_params) === JSON.stringify(curr.search_params)
-        )) {
-          acc.push(curr);
+      // More efficient deduplication using a Set and Map
+      const uniqueSearchesMap = new Map<string, RecentSearch>();
+      data?.forEach(search => {
+        const searchParamsKey = JSON.stringify(search.search_params);
+        if (!uniqueSearchesMap.has(searchParamsKey)) {
+          uniqueSearchesMap.set(searchParamsKey, search);
         }
-        return acc;
-      }, []).slice(0, 5) || [];
+      });
 
+      const uniqueSearches = Array.from(uniqueSearchesMap.values()).slice(0, 5);
       setRecentSearches(uniqueSearches);
     };
 

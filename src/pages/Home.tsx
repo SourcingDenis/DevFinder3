@@ -4,8 +4,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { FAQ } from '@/components/faq/FAQ';
 import { Hero } from '@/components/layout/Hero';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Search, BookmarkCheck, History } from 'lucide-react';
-import { Github } from 'lucide-react';
+import { ArrowRight, Search, BookmarkCheck, History, Github } from 'lucide-react';
 import { motion } from "framer-motion";
 
 export function Home() {
@@ -32,6 +31,8 @@ export function Home() {
             GitHub Search on Steroids
           </h1>
           <motion.div
+            className="mx-auto mb-8 w-24 h-24 flex items-center justify-center"
+            initial={{ rotate: 0 }}
             animate={{ rotate: 360 }}
             transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
           >

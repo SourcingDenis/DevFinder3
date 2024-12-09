@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
@@ -9,8 +10,10 @@ import { SavedSearches } from '@/pages/SavedSearches';
 import { Settings } from '@/pages/Settings';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthCallback } from '@/pages/auth/callback';
+import { ProductRoadmap } from '@/pages/ProductRoadmap';
 
-function AppContent() {
+// Memoize AppContent to prevent unnecessary re-renders
+const AppContent = memo(() => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -23,13 +26,15 @@ function AppContent() {
           <Route path="/saved-searches" element={<SavedSearches />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/roadmap" element={<ProductRoadmap />} />
         </Routes>
       </main>
     </div>
   );
-}
+});
 
-function App() {
+// Memoize App to prevent unnecessary re-renders
+const App = memo(() => {
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -38,6 +43,6 @@ function App() {
       </AuthProvider>
     </ThemeProvider>
   );
-}
+});
 
 export default App;

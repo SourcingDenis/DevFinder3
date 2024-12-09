@@ -33,7 +33,7 @@ export function GitHubLoginButton({ confetti = false, variant = 'hero' }: GitHub
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: 'https://devfinder.co/home'
+          redirectTo: import.meta.env.VITE_GITHUB_CALLBACK_URL
         }
       });
       

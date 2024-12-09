@@ -13,27 +13,27 @@ interface FAQItem {
 const faqItems: FAQItem[] = [
   {
     question: "What is DevFinder?",
-    answer: "DevFinder is a powerful tool that helps you discover GitHub developers based on their skills, location, and other criteria. It's perfect for recruiters, hiring managers, and anyone looking to connect with developers."
+    answer: "DevFinder is a powerful GitHub user search tool designed to help you discover and connect with developers worldwide."
   },
   {
     question: "Do I need to sign in?",
-    answer: "Yes, you need to sign in with your GitHub account to use the search functionality. This helps us provide you with accurate results and save your searches."
+    answer: "Yes, you'll need to sign in with your GitHub account to unlock DevFinder's full potential."
   },
   {
     question: "Is DevFinder free to use?",
-    answer: "Currently, DevFinder is completely free! We're working on expanding our AI capabilities and will introduce premium features in the future, but our core search functionality will remain accessible to all authenticated users."
+    answer: "Absolutely! You can start using DevFinder for free. Advanced features may be added in the future."
   },
   {
     question: "How accurate are the search results?",
-    answer: "Our search results are based on public GitHub data and are highly accurate. We use various signals including repositories, contributions, and user-provided information to match developers to your search criteria. We're also developing advanced AI-powered matching capabilities to make the results even more precise."
+    answer: "Our tool leverages GitHub's API for real-time data, ensuring you get up-to-date and reliable results."
   },
   {
     question: "Can I export the search results?",
-    answer: "Yes! All authenticated users can currently export their search results in CSV format, making it easy to integrate with your existing workflow tools."
+    answer: "Yes! Authenticated users can export search results in CSV format, complete with user data and email contacts."
   },
   {
     question: "What features are coming soon?",
-    answer: "We're working on exciting AI-powered features to enhance your developer search experience. Stay tuned for advanced matching algorithms, deeper insights into developers' expertise, and more powerful search capabilities!"
+    answer: "Upcoming features include search alerts to keep you informed and outreach management tools for streamlined communication."
   }
 ];
 
@@ -171,8 +171,11 @@ export function FAQ() {
       <div className="mt-24 pt-12 border-t border-border/10">
         <div className="text-center space-y-6">
           <h3 className="text-2xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/50">
-            Ready to get started?
+            Ready to Get Started?
           </h3>
+          <p className="text-muted-foreground mb-6">
+            Discover the developers you need—fast.
+          </p>
           <div 
             className="inline-block group"
             onMouseEnter={handleInteraction}

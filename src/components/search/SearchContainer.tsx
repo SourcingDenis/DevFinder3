@@ -152,15 +152,18 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     if (params.language) {
       searchQuery += ` language:${params.language}`;
     }
-    if (params.locations?.length) {
-      searchQuery += ` ${params.locations.map(loc => `location:${loc}`).join(' ')}`;
+    
+    // MODIFICATION: Deduplicate locations
+    const uniqueLocations = params.locations ? [...new Set(params.locations)] : [];
+    if (uniqueLocations.length) {
+      searchQuery += ` ${uniqueLocations.map(loc => `location:${loc}`).join(' ')}`;
     }
 
     const searchParams: Omit<UserSearchParams, 'page'> = {
       query: searchQuery.trim() || ' ',
       sort: params.sort || currentSort.value,
       order: params.order || currentSort.direction,
-      locations: params.locations,
+      locations: uniqueLocations, // Use deduplicated locations
       language: params.language,
       per_page: params.per_page,
       hireable: params.hireable

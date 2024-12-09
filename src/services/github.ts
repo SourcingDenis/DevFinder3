@@ -1,24 +1,23 @@
-import axios from 'axios';
+import { GitHubSearchService } from '@/lib/api-utils';
 import { UserSearchParams, GitHubUser } from '@/types';
 
-const GITHUB_API_URL = 'https://api.github.com';
+export async function searchUsers(params: UserSearchParams): Promise<{ items: GitHubUser[], total_count: number }> {
+  const searchService = GitHubSearchService.getInstance();
+  return searchService.searchUsers(params);
+}
 
-export async function searchUsers({ query, language, locations }: UserSearchParams): Promise<GitHubUser[]> {
-  let searchQuery = query;
-  if (language) searchQuery += ` language:${language}`;
-  if (locations?.length) searchQuery += ` ${locations.map(loc => `location:${loc}`).join(' ')}`;
-
+export const fetchGitHubUser = async (username: string): Promise<GitHubUser | null> => {
   try {
-    const response = await axios.get(`${GITHUB_API_URL}/search/users`, {
-      params: {
-        q: searchQuery,
-        per_page: 10
-      }
+    const searchService = GitHubSearchService.getInstance();
+    const users = await searchService.searchUsers({ 
+      query: username, 
+      page: 1, 
+      per_page: 1 
     });
 
-    return response.data.items;
+    return users.items.length > 0 ? users.items[0] : null;
   } catch (error) {
-    console.error('Error searching GitHub users:', error);
-    return [];
+    console.error(`Error fetching GitHub user ${username}:`, error);
+    return null;
   }
-}
+};
