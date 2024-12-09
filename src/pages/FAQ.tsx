@@ -184,46 +184,50 @@ const FAQ: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8 text-center">
-        DevFinder Frequently Asked Questions
-      </h1>
-      
-      {faqCategories.map((category, categoryIndex) => (
-        <Card key={categoryIndex} className="mb-6">
-          <CardHeader className="flex flex-row items-center space-x-4">
-            <category.icon className="w-6 h-6 text-primary" />
-            <CardTitle>{category.title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Accordion type="single" collapsible>
-              {category.questions.map((faq, faqIndex) => (
-                <AccordionItem 
-                  key={faqIndex} 
-                  value={`item-${categoryIndex}-${faqIndex}`}
-                >
-                  <AccordionTrigger>{faq.question}</AccordionTrigger>
-                  <AccordionContent>
-                    {Array.isArray(faq.answer) ? (
-                      <ul className="list-disc pl-5 space-y-2">
-                        {faq.answer.map((line, lineIndex) => (
-                          <li key={lineIndex}>{line}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p>{faq.answer}</p>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </CardContent>
-        </Card>
-      ))}
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8 text-center">
+          DevFinder Frequently Asked Questions
+        </h1>
+        
+        <div className="max-h-[800px] overflow-y-auto">
+          {faqCategories.map((category, categoryIndex) => (
+            <Card key={categoryIndex} className="mb-6">
+              <CardHeader className="flex flex-row items-center space-x-4">
+                <category.icon className="w-6 h-6 text-primary" />
+                <CardTitle>{category.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible>
+                  {category.questions.map((faq, faqIndex) => (
+                    <AccordionItem 
+                      key={faqIndex} 
+                      value={`item-${categoryIndex}-${faqIndex}`}
+                    >
+                      <AccordionTrigger>{faq.question}</AccordionTrigger>
+                      <AccordionContent>
+                        {Array.isArray(faq.answer) ? (
+                          <ul className="list-disc pl-5 space-y-2">
+                            {faq.answer.map((line, lineIndex) => (
+                              <li key={lineIndex}>{line}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>{faq.answer}</p>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-      <div className="mt-8 text-center text-muted-foreground italic">
-        Have a question not answered here? 
-        <br />
-        Reach out to us at support@devfinder.com
+        <div className="mt-8 text-center text-muted-foreground italic">
+          Have a question not answered here? 
+          <br />
+          Reach out to us at support@devfinder.com
+        </div>
       </div>
     </div>
   );

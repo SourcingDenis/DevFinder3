@@ -187,9 +187,11 @@ const ProductRoadmap: React.FC = () => {
           <Star className="ml-3 text-primary" />
         </h1>
 
-        {renderRoadmapSection('Completed', completedFeatures, 'green')}
-        {renderRoadmapSection('In Progress', inProgressFeatures, 'blue')}
-        {renderRoadmapSection('Planned', plannedFeatures, 'purple')}
+        <div className="max-h-[800px] overflow-y-auto">
+          {renderRoadmapSection('Completed', completedFeatures, 'green')}
+          {renderRoadmapSection('In Progress', inProgressFeatures, 'blue')}
+          {renderRoadmapSection('Planned', plannedFeatures, 'purple')}
+        </div>
 
         <div className="mt-8 text-center text-muted-foreground italic">
           🚀 Our journey of innovation continues. Stay tuned for exciting updates! 🌟

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 const ReleaseNotes: React.FC = () => {
   return (
@@ -14,7 +13,7 @@ const ReleaseNotes: React.FC = () => {
           <p className="text-muted-foreground">Version 1.1.0 - December 2024</p>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[600px] pr-4">
+          <div className="max-h-[600px] overflow-y-auto pr-4">
             <section className="mb-6">
               <h2 className="text-2xl font-semibold mb-4 flex items-center">
                 <Badge variant="outline" className="mr-2">🔍</Badge>
@@ -91,7 +90,7 @@ const ReleaseNotes: React.FC = () => {
             <div className="mt-6 text-center text-muted-foreground italic">
               Thank you for using DevFinder! We're committed to continuously improving your developer discovery experience.
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
     </div>
