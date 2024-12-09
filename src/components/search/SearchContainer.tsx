@@ -153,11 +153,8 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
       searchQuery += ` language:${params.language}`;
     }
     
-    // MODIFICATION: Deduplicate locations
+    // Remove location from searchQuery since it's handled by the GitHub API
     const uniqueLocations = params.locations ? [...new Set(params.locations)] : [];
-    if (uniqueLocations.length) {
-      searchQuery += ` ${uniqueLocations.map(loc => `location:${loc}`).join(' ')}`;
-    }
 
     const searchParams: Omit<UserSearchParams, 'page'> = {
       query: searchQuery.trim() || ' ',
