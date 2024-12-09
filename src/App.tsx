@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, Link } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { Header } from '@/components/layout/Header';
@@ -9,35 +9,6 @@ import { SavedSearches } from '@/pages/SavedSearches';
 import { Settings } from '@/pages/Settings';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthCallback } from '@/pages/auth/callback';
-
-function Footer() {
-  return (
-    <footer className="border-t py-6 text-center text-sm text-muted-foreground">
-      <div className="container mx-auto flex justify-center items-center space-x-4">
-        <Link to="/roadmap" className="hover:text-primary transition-colors">
-          Product Roadmap
-        </Link>
-        <a 
-          href="https://github.com/yourusername/devfinder" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="hover:text-primary transition-colors"
-        >
-          GitHub
-        </a>
-        <a 
-          href="https://twitter.com/devfinder" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="hover:text-primary transition-colors"
-        >
-          Twitter
-        </a>
-        <span> {new Date().getFullYear()} DevFinder</span>
-      </div>
-    </footer>
-  );
-}
 
 function AppContent() {
   return (
@@ -54,7 +25,6 @@ function AppContent() {
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
-      <Footer />
     </div>
   );
 }
