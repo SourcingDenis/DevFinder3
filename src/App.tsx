@@ -2,7 +2,7 @@ import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { Header } from '@/components/layout/Header';
-import { SavedProfiles } from '@/pages/SavedProfiles';
+import { SavedProfiles } from '@/components/saved/SavedProfiles';
 import { SavedSearches } from '@/pages/SavedSearches';
 import { Settings } from '@/pages/Settings';
 import { Toaster } from '@/components/ui/toaster';
