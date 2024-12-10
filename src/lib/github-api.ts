@@ -276,15 +276,26 @@ export async function findUserEmail(username: string): Promise<{ email: string |
 // New function to store user email in Supabase
 export async function storeUserEmail(username: string, email: string, source: string): Promise<void> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
+    if (userError) {
+      console.error('Authentication error:', userError);
+      throw userError;
+    }
+
     if (!user) {
       console.error('No authenticated user found');
       return;
     }
 
-    // Detailed logging for debugging
-    console.log('Storing email:', { username, email, source, userId: user.id });
+    // Extremely detailed logging
+    console.log('Attempting to store email with details:', {
+      username,
+      email,
+      source,
+      userId: user.id,
+      userEmail: user.email
+    });
 
     // Check if the profile already exists
     const { data: existingProfile, error: searchError } = await supabase
@@ -295,8 +306,12 @@ export async function storeUserEmail(username: string, email: string, source: st
       .single();
 
     if (searchError && searchError.code !== 'PGRST116') {
-      console.error('Error searching for existing profile:', searchError);
-      return;
+      console.error('Error searching for existing profile:', {
+        code: searchError.code,
+        message: searchError.message,
+        details: searchError.details
+      });
+      throw searchError;
     }
 
     if (existingProfile) {
@@ -310,27 +325,47 @@ export async function storeUserEmail(username: string, email: string, source: st
         .eq('id', existingProfile.id);
 
       if (updateError) {
-        console.error('Error updating profile email:', updateError);
-        console.error('Update error details:', updateError.details);
+        console.error('Error updating profile email:', {
+          code: updateError.code,
+          message: updateError.message,
+          details: updateError.details
+        });
+        throw updateError;
       }
     } else {
       // Insert new profile with email
+      const insertData = {
+        user_id: user.id,
+        username,
+        email,
+        email_source: source,
+        github_url: `https://github.com/${username}`
+      };
+
+      console.log('Attempting to insert profile with data:', insertData);
+
       const { error: insertError } = await supabase
         .from('saved_profiles')
-        .insert({
-          user_id: user.id,
-          username,
-          email,
-          email_source: source,
-          github_url: `https://github.com/${username}`
-        });
+        .insert(insertData);
 
       if (insertError) {
-        console.error('Error inserting new profile:', insertError);
-        console.error('Insert error details:', insertError.details);
+        console.error('Error inserting new profile:', {
+          code: insertError.code,
+          message: insertError.message,
+          details: insertError.details,
+          context: insertData
+        });
+        throw insertError;
       }
     }
+
+    console.log('Email stored successfully for username:', username);
   } catch (error) {
-    console.error('Error storing user email:', error);
+    console.error('Comprehensive error in storing user email:', {
+      errorName: error.name,
+      errorMessage: error.message,
+      errorStack: error.stack
+    });
+    throw error;
   }
 }
