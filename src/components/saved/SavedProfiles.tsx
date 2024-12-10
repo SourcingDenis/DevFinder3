@@ -92,9 +92,8 @@ export function SavedProfiles() {
                'id' in profile && 
                'user_id' in profile && 
                'username' in profile && 
-               'list_id' in profile && 
                'created_at' in profile && 
-               'updated_at' in profile;
+               (profile.list_id === undefined || profile.list_id !== null);
       });
 
       setProfiles(mappedProfiles);
