@@ -6,7 +6,9 @@ CREATE TABLE saved_profiles (
     email TEXT,
     email_source TEXT CHECK(email_source IN ('github', 'twitter', 'linkedin', 'other')),  -- Explicitly define email_source column
     github_url TEXT,
+    github_data JSONB,  -- Add github_data as JSONB
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     list_id BIGINT REFERENCES profile_lists(id) ON DELETE SET NULL,
     UNIQUE(user_id, username)
 );
