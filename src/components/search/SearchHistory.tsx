@@ -79,26 +79,28 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
     // First trigger the onSearch callback to reset the state
     onSearch?.();
 
-    // Update the URL search parameters
+    // Construct a comprehensive query
+    let fullQuery = searchParams.query || '';
+    if (searchParams.language) {
+      fullQuery += ` language:${searchParams.language}`;
+    }
+
+    // Prepare URL search parameters
     const params = new URLSearchParams();
     
-    // Set all search parameters in the URL
-    Object.entries(searchParams).forEach(([key, value]) => {
-      if (value) {
-        if (Array.isArray(value)) {
-          if (value.length > 0) {
-            params.set(key, value.join(','));
-          }
-        } else if (typeof value === 'boolean') {
-          params.set(key, String(value));
-        } else {
-          params.set(key, String(value));
-        }
-      }
-    });
+    // Set query with language
+    params.set('query', fullQuery.trim());
+    
+    // Add other search parameters
+    if (searchParams.language) params.set('language', searchParams.language);
+    if (searchParams.locations?.length) params.set('locations', searchParams.locations.join(','));
+    if (searchParams.sort) params.set('sort', searchParams.sort);
+    if (searchParams.order) params.set('order', searchParams.order);
+    if (searchParams.per_page) params.set('per_page', String(searchParams.per_page));
+    if (searchParams.hireable !== undefined) params.set('hireable', String(searchParams.hireable));
 
-    // Update the URL without adding a new history entry
-    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+    // Navigate to search page with full query parameters
+    window.location.href = `/search?${params.toString()}`;
   };
 
   if (!user || recentSearches.length === 0) return null;
