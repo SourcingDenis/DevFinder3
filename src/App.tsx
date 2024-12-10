@@ -27,6 +27,13 @@ const RequireAuth = ({ children }: { children: ReactNode }) => {
 
 // Memoize AppContent to prevent unnecessary re-renders
 const AppContent = memo(() => {
+  const { user } = useAuth();
+
+  // If user is authenticated, always redirect to /home
+  if (user) {
+    return <Navigate to="/home" replace />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
