@@ -4,6 +4,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SaveProfileButton } from './SaveProfileButton';
+import { UserStats } from './UserStats';
+import { UserInfo } from './UserInfo';
 import { ExternalLink, Calendar, X } from 'lucide-react';
 
 type UserCardBaseProps = {
@@ -100,6 +102,18 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
                   </span>
                 )}
               </div>
+
+              {/* User Info section */}
+              <UserInfo 
+                name={user.name} 
+                login={user.login} 
+                bio={user.bio} 
+                location={user.location} 
+                profileUrl={user.html_url} 
+              />
+
+              {/* User Stats section */}
+              <UserStats user={user} />
             </div>
           </div>
         </div>
