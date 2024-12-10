@@ -32,17 +32,23 @@ export function Home({ isLoggedIn }: HomeProps) {
 
   return (
     <div className="space-y-8">
-      {user && (
-        <div className="bg-gradient-to-br from-primary/10 to-primary/10 rounded-lg p-6">
-          <h1 className="text-3xl font-bold text-primary">
-            Welcome, {user.user_metadata?.first_name || user.email?.split('@')[0] || 'Developer'}!
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Ready to discover and connect with top talent?
-          </p>
+      <div className="flex flex-col items-center justify-center text-center py-12">
+        <h1 className="text-4xl font-bold text-primary mb-4">
+          Welcome, {user.user_metadata?.first_name || 'Developer'}!
+        </h1>
+        <p className="text-xl text-muted-foreground">
+          Ready to find your next collaboration or hire?
+        </p>
+        <div className="flex gap-4 mt-8">
+          <Button asChild variant="default" size="lg">
+            <Link to="/search">Start Searching</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link to="/bookmarks">Saved Profiles</Link>
+          </Button>
         </div>
-      )}
-
+      </div>
+      
       <div className="md:hidden bg-gradient-to-br from-primary/20 via-background to-primary/10 
         dark:from-primary/30 dark:via-background/90 dark:to-primary/20 
         rounded-lg p-8">
