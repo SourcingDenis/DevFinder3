@@ -4,7 +4,7 @@ CREATE TABLE saved_profiles (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     username TEXT NOT NULL,
     email TEXT,
-    email_source TEXT,
+    email_source TEXT CHECK(email_source IN ('github', 'twitter', 'linkedin', 'other')),  -- Explicitly define email_source column
     github_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     list_id BIGINT REFERENCES profile_lists(id) ON DELETE SET NULL,
@@ -22,3 +22,4 @@ CREATE POLICY "Users can manage their own saved profiles" ON saved_profiles
 CREATE INDEX idx_saved_profiles_user_id ON saved_profiles(user_id);
 CREATE INDEX idx_saved_profiles_username ON saved_profiles(username);
 CREATE INDEX idx_saved_profiles_email ON saved_profiles(email);
+CREATE INDEX idx_saved_profiles_email_source ON saved_profiles(email_source);

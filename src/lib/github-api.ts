@@ -288,11 +288,17 @@ export async function storeUserEmail(username: string, email: string, source: st
       return;
     }
 
+    // Validate source
+    const validSources = ['github', 'twitter', 'linkedin', 'other', 'manual'];
+    const normalizedSource = validSources.includes(source.toLowerCase()) 
+      ? source.toLowerCase() 
+      : 'other';
+
     // Extremely detailed logging
     console.log('Attempting to store email with details:', {
       username,
       email,
-      source,
+      source: normalizedSource,
       userId: user.id,
       userEmail: user.email
     });
@@ -320,7 +326,7 @@ export async function storeUserEmail(username: string, email: string, source: st
         .from('saved_profiles')
         .update({ 
           email, 
-          email_source: source 
+          email_source: normalizedSource 
         })
         .eq('id', existingProfile.id);
 
@@ -338,7 +344,7 @@ export async function storeUserEmail(username: string, email: string, source: st
         user_id: user.id,
         username,
         email,
-        email_source: source,
+        email_source: normalizedSource,
         github_url: `https://github.com/${username}`
       };
 
