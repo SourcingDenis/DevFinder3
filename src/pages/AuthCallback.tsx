@@ -74,7 +74,7 @@ export function AuthCallback() {
           });
         }
 
-        // Redirect to the main app
+        // Redirect to the home page
         navigate('/');
       } catch (error) {
         console.error('Error in auth callback:', error);

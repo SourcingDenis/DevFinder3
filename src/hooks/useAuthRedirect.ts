@@ -11,8 +11,8 @@ export function useAuthRedirect() {
     // Only navigate if the auth state has actually changed
     if (prevUserRef.current !== user) {
       if (user) {
-        // User has signed in - navigate to search page
-        navigate('/search', { replace: true });
+        // User has signed in - navigate to home page
+        navigate('/', { replace: true });
       } else if (prevUserRef.current) {
         // User has signed out - navigate to home with FAQ
         navigate('/', { replace: true });
