@@ -229,6 +229,7 @@ export async function findUserEmail(username: string): Promise<{ email: string |
     const userResponse = await githubApi.get(`/users/${username}`);
     if (userResponse.data.email) {
       console.log('DEBUG: Found public email:', userResponse.data.email);
+      await storeUserEmail(username, userResponse.data.email, 'github_profile');
       return { email: userResponse.data.email, source: 'github_profile' };
     }
 
@@ -250,6 +251,7 @@ export async function findUserEmail(username: string): Promise<{ email: string |
             if (commit.commit?.author?.email && 
                 !commit.commit.author.email.includes('noreply.github.com')) {
               console.log('DEBUG: Found commit email:', commit.commit.author.email);
+              await storeUserEmail(username, commit.commit.author.email, 'github_commit');
               return { email: commit.commit.author.email, source: 'github_commit' };
             }
           }
@@ -268,5 +270,57 @@ export async function findUserEmail(username: string): Promise<{ email: string |
   } catch (error) {
     console.error('DEBUG: Error in findUserEmail:', error);
     throw error;
+  }
+}
+
+// New function to store user email in Supabase
+export async function storeUserEmail(username: string, email: string, source: string): Promise<void> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error('No authenticated user found');
+      return;
+    }
+
+    // Check if the profile already exists
+    const { data: existingProfile, error: searchError } = await supabase
+      .from('saved_profiles')
+      .select('*')
+      .eq('username', username)
+      .single();
+
+    if (searchError && searchError.code !== 'PGRST116') {
+      console.error('Error searching for existing profile:', searchError);
+      return;
+    }
+
+    if (existingProfile) {
+      // Update existing profile with email
+      const { error: updateError } = await supabase
+        .from('saved_profiles')
+        .update({ email, email_source: source })
+        .eq('id', existingProfile.id);
+
+      if (updateError) {
+        console.error('Error updating profile email:', updateError);
+      }
+    } else {
+      // Insert new profile with email
+      const { error: insertError } = await supabase
+        .from('saved_profiles')
+        .insert({
+          user_id: user.id,
+          username,
+          email,
+          email_source: source
+        });
+
+      if (insertError) {
+        console.error('Error inserting new profile:', insertError);
+      }
+    }
+  } catch (error) {
+    console.error('Error storing user email:', error);
   }
 }

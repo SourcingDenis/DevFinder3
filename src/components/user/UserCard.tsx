@@ -6,7 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { SaveProfileButton } from './SaveProfileButton';
 import { UserStats } from './UserStats';
 import { UserInfo } from './UserInfo';
-import { ExternalLink, Calendar, X } from 'lucide-react';
+import { ExternalLink, Calendar, X, Mail } from 'lucide-react';
+import { findUserEmail } from '@/lib/github-api';
+import { toast } from 'sonner';
+import { EmailFinder } from './EmailFinder';
 
 type UserCardBaseProps = {
   user: GitHubUser;
@@ -28,6 +31,30 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
   isSaved = false,
   ...props 
 }, ref) => {
+  const [isEmailLoading, setIsEmailLoading] = React.useState(false);
+  const [showEmailInput, setShowEmailInput] = React.useState(false);
+
+  const handleFindEmail = async () => {
+    setIsEmailLoading(true);
+    try {
+      const result = await findUserEmail(user.login);
+      if (result.email) {
+        toast.success(`Email found for ${user.login}`, {
+          description: `Source: ${result.source}`
+        });
+      } else {
+        // No email found, show input
+        setShowEmailInput(true);
+      }
+    } catch (error) {
+      toast.error('Error finding email', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      });
+    } finally {
+      setIsEmailLoading(false);
+    }
+  };
+
   console.log('UserCard Props:', { user: user.login, listName, isSaved });
 
   return (
@@ -46,7 +73,22 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
           )}
           <div className="flex gap-6 relative">
             {/* Save button in top right corner */}
-            <div className="absolute right-0 top-0">
+            <div className="absolute right-0 top-0 flex items-center gap-2">
+              {/* Email Finding Button */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleFindEmail}
+                disabled={isEmailLoading}
+                className="h-8 w-8"
+              >
+                {isEmailLoading ? (
+                  <span className="loading-spinner h-4 w-4" />
+                ) : (
+                  <Mail className="h-4 w-4" />
+                )}
+              </Button>
+
               <SaveProfileButton
                 user={user}
                 isSaved={isSaved}
@@ -115,6 +157,16 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
               <UserStats user={user} />
             </div>
           </div>
+
+          {/* Email Input Section */}
+          {showEmailInput && (
+            <div className="w-full mt-2">
+              <EmailFinder 
+                username={user.login}
+                onClose={() => setShowEmailInput(false)}
+              />
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
