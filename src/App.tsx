@@ -24,6 +24,17 @@ const RootRoute = () => {
   return <Navigate to="/" replace />;
 };
 
+// RequireAuth component to wrap routes that require authentication
+const RequireAuth = ({ children }) => {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
 // Memoize AppContent to prevent unnecessary re-renders
 const AppContent = memo(() => {
   return (
@@ -31,9 +42,12 @@ const AppContent = memo(() => {
       <Header />
       <main className="flex-1 w-full container max-w-screen-2xl mx-auto px-4 py-6">
         <Routes>
-          <Route path="/" element={<RootRoute />} />
-          <Route path="/home" element={<Home isLoggedIn={true} />} />
           <Route path="/" element={<Home isLoggedIn={false} />} />
+          <Route path="/home" element={
+            <RequireAuth>
+              <Home isLoggedIn={true} />
+            </RequireAuth>
+          } />
           <Route path="/search" element={<Search />} />
           <Route path="/bookmarks" element={<SavedProfiles />} />
           <Route path="/saved-searches" element={<SavedSearches />} />
