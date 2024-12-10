@@ -10,7 +10,7 @@ export function UserInfo({ login, bio, location, profileUrl }: UserInfoProps) {
     <div>
       {bio && <p className="text-sm text-muted-foreground">{bio}</p>}
       {location && (
-        <p className="text-sm text-muted-foreground mt-1"> {location}</p>
+        <p className="text-sm text-muted-foreground mt-1">📍 {location}</p>
       )}
       {login && profileUrl && (
         <a 
