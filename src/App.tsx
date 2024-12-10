@@ -42,6 +42,9 @@ const AppContent = memo(() => {
           <Route path="/roadmap" element={<ProductRoadmap />} />
         </Routes>
       </main>
+      <footer className="w-full bg-muted text-muted-foreground text-center py-4 text-sm">
+        &copy; 2024 Built by <a href="https://sourcingdenis.live" target="_blank" rel="noopener noreferrer" className="hover:underline">@sourcingdenis</a>
+      </footer>
     </div>
   );
 });
