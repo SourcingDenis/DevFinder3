@@ -19,7 +19,7 @@ export function AuthCallback() {
             description: 'Failed to complete authentication. Please try again.',
             variant: 'destructive'
           });
-          navigate('/');
+          navigate('/home');
           return;
         }
 
@@ -30,7 +30,7 @@ export function AuthCallback() {
             description: 'No session found. Please try logging in again.',
             variant: 'destructive'
           });
-          navigate('/');
+          navigate('/home');
           return;
         }
 
@@ -39,10 +39,10 @@ export function AuthCallback() {
           console.error('No provider token in session');
           toast({
             title: 'Authentication Error',
-            description: 'Missing required Gmail access. Please try again.',
+            description: 'Missing required GitHub access. Please try again.',
             variant: 'destructive'
           });
-          navigate('/');
+          navigate('/home');
           return;
         }
 
@@ -51,7 +51,7 @@ export function AuthCallback() {
           .from('user_tokens')
           .upsert({
             user_id: session.user.id,
-            provider: 'google',
+            provider: 'github',
             access_token: session.provider_token,
             refresh_token: session.provider_refresh_token,
             expires_at: new Date(Date.now() + (session.expires_in * 1000)).toISOString()
@@ -69,13 +69,13 @@ export function AuthCallback() {
         } else {
           toast({
             title: 'Success',
-            description: 'Successfully connected your Gmail account.',
+            description: 'Successfully connected your GitHub account.',
             variant: 'default'
           });
         }
 
         // Redirect to the home page
-        navigate('/');
+        navigate('/home');
       } catch (error) {
         console.error('Error in auth callback:', error);
         toast({
@@ -83,7 +83,7 @@ export function AuthCallback() {
           description: 'An unexpected error occurred. Please try again.',
           variant: 'destructive'
         });
-        navigate('/');
+        navigate('/home');
       }
     };
 
