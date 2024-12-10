@@ -21,30 +21,34 @@ export function AuthCallback() {
           throw new Error('Authentication failed');
         }
 
-        // Store the tokens
-        const { error: tokenError } = await supabase
-          .from('user_tokens')
-          .upsert({
-            user_id: session.user.id,
-            provider: 'google',
-            access_token: session.provider_token,
-            refresh_token: session.provider_refresh_token,
-            expires_at: new Date(Date.now() + (session.expires_in * 1000)).toISOString()
-          }, {
-            onConflict: 'user_id,provider'
-          });
+        // Store the tokens only if provider tokens exist
+        if (session.provider_token || session.provider_refresh_token) {
+          const { error: tokenError } = await supabase
+            .from('user_tokens')
+            .upsert({
+              user_id: session.user.id,
+              provider: 'github',
+              access_token: session.provider_token ?? null,
+              refresh_token: session.provider_refresh_token ?? null,
+              expires_at: session.expires_in 
+                ? new Date(Date.now() + (session.expires_in * 1000)).toISOString() 
+                : null
+            }, {
+              onConflict: 'user_id,provider'
+            });
 
-        if (tokenError) {
-          console.error('Error storing tokens:', tokenError);
-          throw tokenError;
+          if (tokenError) {
+            console.error('Error storing tokens:', tokenError);
+            throw tokenError;
+          }
         }
 
-        // Redirect to the main app
-        navigate('/');
+        // Redirect to search page after successful authentication
+        navigate('/search');
       } catch (error) {
         console.error('Error in auth callback:', error);
-        // Redirect to login page or show error
-        navigate('/login');
+        // Redirect to landing page on authentication failure
+        navigate('/');
       }
     };
 

@@ -18,10 +18,10 @@ const RootRoute = () => {
   const { user } = useAuth();
   
   if (user) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/search" replace />;
   }
   
-  return <Navigate to="/devfinder.co" replace />;
+  return <Navigate to="/" replace />;
 };
 
 // Memoize AppContent to prevent unnecessary re-renders
