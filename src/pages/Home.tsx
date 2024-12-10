@@ -29,74 +29,79 @@ export function Home({ isLoggedIn }: HomeProps) {
   }
 
   // For authenticated users
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col items-center justify-center text-center py-12">
-        <h1 className="text-4xl font-bold text-primary">
-          Welcome, {user.user_metadata?.full_name || 'Developer'}!
-        </h1>
+  if (isLoggedIn && user) {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col items-center justify-center text-center py-12">
+          <h1 className="text-4xl font-bold text-primary">
+            Welcome, {user?.user_metadata?.full_name || 'Developer'}!
+          </h1>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card className="flex flex-col hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-2 mb-2">
+                <Search className="card-header-icon" />
+                <CardTitle className="card-header-title">Search Developers</CardTitle>
+              </div>
+              <CardDescription>
+                Find developers by location, tech stack, experience level, and more. Get detailed insights into their work and contributions.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="mt-auto">
+              <Button asChild variant="outline" className="w-full group">
+                <Link to="/search">
+                  Start Searching
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card className="flex flex-col hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-2 mb-2">
+                <BookmarkCheck className="card-header-icon" />
+                <CardTitle className="card-header-title">Saved Profiles</CardTitle>
+              </div>
+              <CardDescription>
+                Keep track of interesting developers. Create custom lists and add notes to organize your talent pool effectively.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="mt-auto">
+              <Button asChild variant="outline" className="w-full group">
+                <Link to="/bookmarks">
+                  View Bookmarks
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card className="flex flex-col hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-2 mb-2">
+                <History className="card-header-icon" />
+                <CardTitle className="card-header-title">Saved Searches</CardTitle>
+              </div>
+              <CardDescription>
+                Save and reuse your search filters. Get notified when new developers match your saved search criteria.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="mt-auto">
+              <Button asChild variant="outline" className="w-full group">
+                <Link to="/saved-searches">
+                  View Searches
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="flex flex-col hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <div className="flex items-center gap-2 mb-2">
-              <Search className="card-header-icon" />
-              <CardTitle className="card-header-title">Search Developers</CardTitle>
-            </div>
-            <CardDescription>
-              Find developers by location, tech stack, experience level, and more. Get detailed insights into their work and contributions.
-            </CardDescription>
-          </CardHeader>
-        <CardFooter className="mt-auto">
-          <Button asChild variant="outline" className="w-full group">
-            <Link to="/search">
-              Start Searching
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </Button>
-        </CardFooter>
-      </Card>
+    );
+  }
 
-      <Card className="flex flex-col hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <div className="flex items-center gap-2 mb-2">
-            <BookmarkCheck className="card-header-icon" />
-            <CardTitle className="card-header-title">Saved Profiles</CardTitle>
-          </div>
-          <CardDescription>
-            Keep track of interesting developers. Create custom lists and add notes to organize your talent pool effectively.
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="mt-auto">
-          <Button asChild variant="outline" className="w-full group">
-            <Link to="/bookmarks">
-              View Bookmarks
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </Button>
-        </CardFooter>
-      </Card>
-
-      <Card className="flex flex-col hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <div className="flex items-center gap-2 mb-2">
-            <History className="card-header-icon" />
-            <CardTitle className="card-header-title">Saved Searches</CardTitle>
-          </div>
-          <CardDescription>
-            Save and reuse your search filters. Get notified when new developers match your saved search criteria.
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="mt-auto">
-          <Button asChild variant="outline" className="w-full group">
-            <Link to="/saved-searches">
-              View Searches
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
-  </div>
-  );
+  // Fallback
+  return null;
 }
