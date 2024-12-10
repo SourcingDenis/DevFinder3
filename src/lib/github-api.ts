@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { UserSearchParams, GitHubUser, SearchResponse } from '@/types';
 import { supabase } from './supabase';
 
@@ -48,8 +48,8 @@ const getGithubApi = async () => {
     // Add response interceptor to handle token refresh
     api.interceptors.response.use(
       response => response,
-      async error => {
-        const originalRequest = error.config;
+      async (error: AxiosError) => {
+        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
         // Check if the error is due to an unauthorized request
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -64,7 +64,9 @@ const getGithubApi = async () => {
             }
 
             // Update the authorization header
-            originalRequest.headers['Authorization'] = `Bearer ${refreshData.session.provider_token}`;
+            if (originalRequest.headers) {
+              originalRequest.headers['Authorization'] = `Bearer ${refreshData.session.provider_token}`;
+            }
             
             // Retry the original request
             return axios(originalRequest);
@@ -222,191 +224,190 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
 }
 
 export async function fetchAllUsers(params: Omit<UserSearchParams, 'page'>): Promise<GitHubUser[]> {
-  const allUsers: GitHubUser[] = [];
-  let currentPage = 1;
-  const perPage = 100; // Maximum allowed by GitHub API
+  try {
+    const allUsers: GitHubUser[] = [];
+    let page = 1;
+    let hasMoreResults = true;
 
-  while (true) {
-    try {
-      const response = await searchUsers({
-        ...params,
-        page: currentPage,
-        per_page: perPage
-      });
+    while (hasMoreResults) {
+      try {
+        const searchResult = await searchUsers({ ...params, page });
+        
+        if (searchResult.items.length === 0) {
+          hasMoreResults = false;
+          break;
+        }
 
-      allUsers.push(...response.items);
+        allUsers.push(...searchResult.items);
 
-      // Check if we've fetched all users
-      if (response.items.length < perPage || allUsers.length >= response.total_count) {
-        break;
+        // Break if we've reached the total count or the last page
+        if (allUsers.length >= searchResult.total_count || searchResult.items.length < (params.per_page || 30)) {
+          hasMoreResults = false;
+        }
+
+        page++;
+      } catch (pageError) {
+        const errorMessage = isErrorWithMessage(pageError) 
+          ? pageError.message 
+          : 'Unknown error fetching page of users';
+        
+        console.error(`Error fetching page ${page}:`, errorMessage);
+        
+        // Decide whether to continue or break based on the error
+        if (isAxiosError(pageError) && pageError.response?.status === 403) {
+          // Rate limit or authentication error
+          console.warn('Rate limit or authentication error. Stopping further requests.');
+          break;
+        }
+
+        // Increment page to avoid infinite loop
+        page++;
       }
-
-      currentPage++;
-    } catch (error) {
-      console.error('Error fetching all users:', error);
-      break;
     }
-  }
 
-  return allUsers;
+    return allUsers;
+  } catch (error) {
+    const errorMessage = isErrorWithMessage(error) 
+      ? error.message 
+      : 'Unexpected error in fetchAllUsers';
+    
+    console.error('Unexpected error in fetchAllUsers:', errorMessage);
+    throw new Error(errorMessage);
+  }
 }
 
 export async function findUserEmail(username: string): Promise<{ email: string | null; source: string | null }> {
   try {
-    console.log('DEBUG: findUserEmail started for', username);
     const githubApi = await getGithubApi();
-    
-    // Check public profile first
-    console.log('DEBUG: Checking public profile');
-    const userResponse = await githubApi.get(`/users/${username}`);
-    if (userResponse.data.email) {
-      console.log('DEBUG: Found public email:', userResponse.data.email);
-      await storeUserEmail(username, userResponse.data.email, 'github_profile');
-      return { email: userResponse.data.email, source: 'github_profile' };
-    }
 
-    // Try to find email in commits
-    console.log('DEBUG: Checking commits');
     try {
-      const reposResponse = await githubApi.get(`/users/${username}/repos`, {
-        params: { sort: 'pushed', per_page: 5 }
-      });
-
-      for (const repo of reposResponse.data) {
-        try {
-          console.log('DEBUG: Checking commits in repo:', repo.name);
-          const commitsResponse = await githubApi.get(`/repos/${username}/${repo.name}/commits`, {
-            params: { per_page: 5 }
-          });
-
-          for (const commit of commitsResponse.data) {
-            if (commit.commit?.author?.email && 
-                !commit.commit.author.email.includes('noreply.github.com')) {
-              console.log('DEBUG: Found commit email:', commit.commit.author.email);
-              await storeUserEmail(username, commit.commit.author.email, 'github_commit');
-              return { email: commit.commit.author.email, source: 'github_commit' };
+      // First, try to fetch email from user's public events
+      const eventsResponse = await githubApi.get(`/users/${username}/events/public`);
+      
+      for (const event of eventsResponse.data) {
+        if (event.payload?.commits) {
+          for (const commit of event.payload.commits) {
+            if (commit.author?.email && !commit.author.email.includes('noreply.github.com')) {
+              return { 
+                email: commit.author.email, 
+                source: 'public_events_commit' 
+              };
             }
           }
-        } catch (commitError) {
-          console.log('DEBUG: Error checking commits:', commitError);
-          continue;
         }
       }
-    } catch (repoError) {
-      console.log('DEBUG: Error checking repos:', repoError);
+    } catch (eventsError) {
+      const errorMessage = isErrorWithMessage(eventsError) 
+        ? eventsError.message 
+        : 'Unknown error fetching public events';
+      
+      console.warn(`Could not fetch public events for ${username}:`, errorMessage);
     }
 
-    console.log('DEBUG: No email found, returning null');
-    return { email: null, source: null };
+    try {
+      // If no email found in events, try user's profile
+      const userResponse = await githubApi.get(`/users/${username}`);
+      
+      if (userResponse.data.email) {
+        return { 
+          email: userResponse.data.email, 
+          source: 'github_profile' 
+        };
+      }
+    } catch (profileError) {
+      const errorMessage = isErrorWithMessage(profileError) 
+        ? profileError.message 
+        : 'Unknown error fetching user profile';
+      
+      console.warn(`Could not fetch profile for ${username}:`, errorMessage);
+    }
 
+    // No email found
+    return { 
+      email: null, 
+      source: null 
+    };
   } catch (error) {
-    console.error('DEBUG: Error in findUserEmail:', error);
-    throw error;
+    const errorMessage = isErrorWithMessage(error) 
+      ? error.message 
+      : 'Unexpected error in findUserEmail';
+    
+    console.error('Unexpected error in findUserEmail:', errorMessage);
+    throw new Error(errorMessage);
   }
 }
 
-// New function to store user email in Supabase
 export async function storeUserEmail(username: string, email: string, source: string): Promise<void> {
   try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) {
-      console.error('Authentication error:', userError);
-      throw userError;
+    // Validate inputs
+    if (!username || !email || !source) {
+      throw new Error('Invalid input: username, email, and source are required');
     }
 
-    if (!user) {
-      console.error('No authenticated user found');
-      return;
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error('Invalid email format');
     }
 
     // Validate source
-    const validSources = ['github', 'twitter', 'linkedin', 'other', 'manual'];
-    const normalizedSource = validSources.includes(source.toLowerCase()) 
-      ? source.toLowerCase() 
-      : 'other';
+    const validSources = ['public_events_commit', 'github_profile', 'manual_input'];
+    if (!validSources.includes(source)) {
+      throw new Error(`Invalid email source. Must be one of: ${validSources.join(', ')}`);
+    }
 
-    // Extremely detailed logging
-    console.log('Attempting to store email with details:', {
-      username,
-      email,
-      source: normalizedSource,
-      userId: user.id,
-      userEmail: user.email
-    });
-
-    // Check if the profile already exists
-    const { data: existingProfile, error: searchError } = await supabase
+    // Check if user already exists
+    const { data: existingUser, error: existError } = await supabase
       .from('saved_profiles')
       .select('*')
       .eq('username', username)
-      .eq('user_id', user.id)
       .single();
 
-    if (searchError && searchError.code !== 'PGRST116') {
-      console.error('Error searching for existing profile:', {
-        code: searchError.code,
-        message: searchError.message,
-        details: searchError.details
-      });
-      throw searchError;
+    if (existError && existError.code !== 'PGRST116') {
+      console.error('Error checking existing user:', existError);
+      throw existError;
     }
 
-    if (existingProfile) {
-      // Update existing profile with email
+    if (existingUser) {
+      // Update existing user
       const { error: updateError } = await supabase
         .from('saved_profiles')
         .update({ 
           email, 
-          email_source: normalizedSource 
+          email_source: source,
+          updated_at: new Date().toISOString() 
         })
-        .eq('id', existingProfile.id);
+        .eq('username', username);
 
       if (updateError) {
-        console.error('Error updating profile email:', {
-          code: updateError.code,
-          message: updateError.message,
-          details: updateError.details
-        });
+        console.error('Error updating user email:', updateError);
         throw updateError;
       }
     } else {
-      // Insert new profile with email
-      const insertData = {
-        user_id: user.id,
-        username,
-        email,
-        email_source: normalizedSource,
-        github_url: `https://github.com/${username}`
-      };
-
-      console.log('Attempting to insert profile with data:', insertData);
-
+      // Insert new user
       const { error: insertError } = await supabase
         .from('saved_profiles')
-        .insert(insertData);
+        .insert({ 
+          username, 
+          email, 
+          email_source: source,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString() 
+        });
 
       if (insertError) {
-        console.error('Error inserting new profile:', {
-          code: insertError.code,
-          message: insertError.message,
-          details: insertError.details,
-          context: insertData
-        });
+        console.error('Error inserting user email:', insertError);
         throw insertError;
       }
     }
 
-    console.log('Email stored successfully for username:', username);
+    console.log(`Successfully stored email for ${username} from ${source}`);
   } catch (error) {
-    // Safely handle unknown errors
-    const errorDetails = {
-      errorName: isErrorWithMessage(error) ? error.name : 'Unknown Error',
-      errorMessage: isErrorWithMessage(error) ? error.message : 'Unknown error occurred',
-      errorStack: error instanceof Error ? error.stack : 'No stack trace available'
-    };
-
-    console.error('Comprehensive error in storing user email:', errorDetails);
-    throw error;
+    const errorMessage = isErrorWithMessage(error) 
+      ? error.message 
+      : 'Unexpected error in storeUserEmail';
+    
+    console.error('Unexpected error in storeUserEmail:', errorMessage);
+    throw new Error(errorMessage);
   }
 }
