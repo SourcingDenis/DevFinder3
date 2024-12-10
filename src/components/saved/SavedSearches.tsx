@@ -44,7 +44,15 @@ export function SavedSearches() {
 
   const handleExecuteSearch = (searchParams: Omit<UserSearchParams, 'page'>) => {
     const queryString = new URLSearchParams();
-    if (searchParams.query) queryString.append('query', searchParams.query);
+    
+    // Construct query with language and other parameters
+    let fullQuery = searchParams.query || '';
+    if (searchParams.language) {
+      fullQuery += ` language:${searchParams.language}`;
+    }
+
+    // Add parameters to URL
+    queryString.append('query', fullQuery.trim());
     if (searchParams.language) queryString.append('language', searchParams.language);
     if (searchParams.locations?.length) queryString.append('locations', searchParams.locations.join(','));
     if (searchParams.sort) queryString.append('sort', searchParams.sort);
@@ -52,6 +60,7 @@ export function SavedSearches() {
     if (searchParams.per_page) queryString.append('per_page', String(searchParams.per_page));
     if (typeof searchParams.hireable === 'boolean') queryString.append('hireable', String(searchParams.hireable));
     
+    // Navigate to search page with full query parameters
     navigate(`/search?${queryString.toString()}`);
   };
 
