@@ -105,10 +105,10 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
 
               {/* User Info section */}
               <UserInfo 
-                login={user.login} 
+                login={user.login}
                 bio={user.bio} 
                 location={user.location} 
-                profileUrl={user.html_url} 
+                profileUrl={user.html_url}
               />
 
               {/* User Stats section */}
