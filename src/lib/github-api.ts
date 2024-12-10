@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { UserSearchParams, GitHubUser, SearchResponse } from '@/types';
 import { supabase } from './supabase';
 
@@ -12,12 +12,12 @@ function isErrorWithMessage(error: unknown): error is { message: string } {
   );
 }
 
-function isAxiosError(error: unknown): error is axios.AxiosError {
+function isAxiosError(error: unknown): error is AxiosError {
   return (
     error !== null &&
     typeof error === 'object' &&
     'isAxiosError' in error &&
-    (error as axios.AxiosError).isAxiosError === true
+    (error as AxiosError).isAxiosError === true
   );
 }
 
@@ -399,11 +399,14 @@ export async function storeUserEmail(username: string, email: string, source: st
 
     console.log('Email stored successfully for username:', username);
   } catch (error) {
-    console.error('Comprehensive error in storing user email:', {
-      errorName: error.name,
-      errorMessage: error.message,
-      errorStack: error.stack
-    });
+    // Safely handle unknown errors
+    const errorDetails = {
+      errorName: isErrorWithMessage(error) ? error.name : 'Unknown Error',
+      errorMessage: isErrorWithMessage(error) ? error.message : 'Unknown error occurred',
+      errorStack: error instanceof Error ? error.stack : 'No stack trace available'
+    };
+
+    console.error('Comprehensive error in storing user email:', errorDetails);
     throw error;
   }
 }
