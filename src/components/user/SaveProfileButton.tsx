@@ -87,7 +87,10 @@ export function SaveProfileButton({
         .from('saved_profiles')
         .insert({
           user_id: authUser.id,
-          github_username: user.login,
+          username: user.login,
+          email: user.email || null,
+          email_source: 'github',
+          github_url: user.html_url,
           github_data: user,
           created_at: new Date().toISOString(),
           list_id: selectedListId
@@ -110,7 +113,7 @@ export function SaveProfileButton({
     } catch (err) {
       toast({
         title: 'Error',
-        description: 'Failed to save profile.',
+        description: `Failed to save profile: ${(err as Error).message}`,
         variant: 'destructive',
       });
     }
@@ -124,7 +127,7 @@ export function SaveProfileButton({
         .from('saved_profiles')
         .delete()
         .eq('user_id', authUser.id)
-        .eq('github_username', user.login);
+        .eq('username', user.login);
 
       if (error) throw error;
 
@@ -138,7 +141,7 @@ export function SaveProfileButton({
     } catch (err) {
       toast({
         title: 'Error',
-        description: 'Failed to remove profile.',
+        description: `Failed to remove profile: ${(err as Error).message}`,
         variant: 'destructive',
       });
     }

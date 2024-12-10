@@ -53,7 +53,7 @@ export function SavedProfiles() {
       console.log('Selected List ID:', selectedListId);
       const query = supabase
         .from('saved_profiles')
-        .select('*')
+        .select('id, user_id, username, github_data, list_id, created_at, updated_at')
         .eq('user_id', user.id);
 
       if (selectedListId !== null) {
@@ -115,7 +115,7 @@ export function SavedProfiles() {
         .from('saved_profiles')
         .delete()
         .eq('user_id', user.id)
-        .eq('github_username', githubUsername);
+        .eq('username', githubUsername);
 
       if (error) {
         toast({
@@ -128,7 +128,7 @@ export function SavedProfiles() {
 
       // Update local state by filtering out the removed profile
       setProfiles(currentProfiles => 
-        currentProfiles.filter(profile => profile.github_username !== githubUsername)
+        currentProfiles.filter(profile => profile.github_data?.login !== githubUsername)
       );
 
       toast({
@@ -242,7 +242,7 @@ export function SavedProfiles() {
 
     console.log('Profiles:', profiles.map(p => ({
       id: p.id,
-      username: p.github_username,
+      username: p.username,
       listId: p.list_id,
       listName: lists.find(l => l.id === p.list_id)?.name
     })));
@@ -330,7 +330,7 @@ export function SavedProfiles() {
                 const associatedList = lists.find(l => l.id === profile.list_id);
                 console.log('Profile Details:', {
                   profileId: profile.id,
-                  githubUsername: profile.github_username,
+                  githubUsername: profile.username,
                   listId: profile.list_id,
                   listName: associatedList?.name,
                   listsAvailable: lists.map(l => ({ id: l.id, name: l.name }))
@@ -345,7 +345,7 @@ export function SavedProfiles() {
                   user={profile.github_data} 
                   listName={profile.listName}
                   isSaved={true} 
-                  onRemove={() => handleRemoveSavedProfile(profile.github_username)}
+                  onRemove={() => handleRemoveSavedProfile(profile.username)}
                 />
               ))}
             </div>
