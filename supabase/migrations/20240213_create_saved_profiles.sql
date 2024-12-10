@@ -4,7 +4,7 @@ CREATE TABLE saved_profiles (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     username TEXT NOT NULL,
     email TEXT,
-    email_source TEXT CHECK(email_source IN ('github', 'twitter', 'linkedin', 'other')),  -- Explicitly define email_source column
+    email_source TEXT CHECK(email_source IN ('public_events_commit', 'github_profile', 'manual_input')),  -- Explicitly define email_source column
     github_url TEXT,
     github_data JSONB,  -- Add github_data as JSONB
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,

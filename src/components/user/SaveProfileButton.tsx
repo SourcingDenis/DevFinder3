@@ -89,10 +89,11 @@ export function SaveProfileButton({
           user_id: authUser.id,
           username: user.login,
           email: user.email || null,
-          email_source: 'github',
+          email_source: user.email ? 'github_profile' : null,
           github_url: user.html_url,
           github_data: user,
           created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
           list_id: selectedListId
         })
         .select()

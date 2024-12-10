@@ -53,7 +53,7 @@ export interface SavedProfile {
   user_id: string;
   username: string;
   email?: string | null;
-  email_source?: 'github' | 'twitter' | 'linkedin' | 'other';
+  email_source?: 'public_events_commit' | 'github_profile' | 'manual_input';
   github_url?: string;
   github_data: GitHubUser;
   created_at: string;
