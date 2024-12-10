@@ -3,12 +3,12 @@ import { UserSearchParams, GitHubUser, SearchResponse } from '@/types';
 import { supabase } from './supabase';
 
 // Type guard for error objects
-function isErrorWithMessage(error: unknown): error is { message: string } {
+function isErrorWithMessage(error: unknown): error is Error {
   return (
     error !== null &&
     typeof error === 'object' &&
     'message' in error &&
-    typeof (error as { message: string }).message === 'string'
+    typeof (error as Error).message === 'string'
   );
 }
 
