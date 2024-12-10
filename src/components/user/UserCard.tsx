@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { SaveProfileButton } from './SaveProfileButton';
 import { UserStats } from './UserStats';
 import { UserInfo } from './UserInfo';
-import { ExternalLink, Calendar, X, Mail } from 'lucide-react';
+import { ExternalLink, Calendar, X, Mail, Code2 } from 'lucide-react';
 import { findUserEmail } from '@/lib/github-api';
 import { toast } from 'sonner';
 import { EmailFinder } from './EmailFinder';
@@ -122,6 +122,12 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
                 {listName && (
                   <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                     {listName}
+                  </Badge>
+                )}
+                {user.topLanguage && (
+                  <Badge variant="secondary" className="bg-violet-100 text-violet-800">
+                    <Code2 className="h-3 w-3 mr-1" />
+                    {user.topLanguage}
                   </Badge>
                 )}
               </div>

@@ -139,31 +139,24 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
         }
       });
 
-      // Check for rate limit headers
-      const rateLimitRemaining = response.headers['x-ratelimit-remaining'];
-      const rateLimitReset = response.headers['x-ratelimit-reset'];
-
-      if (rateLimitRemaining && Number(rateLimitRemaining) < 10) {
-        console.warn(`GitHub API rate limit is low. Remaining: ${rateLimitRemaining}. Resets at: ${new Date(Number(rateLimitReset) * 1000)}`);
-      }
-
-      // Fetch detailed user information with error handling
+      // Fetch detailed information for each user
       const users = await Promise.all(
         response.data.items.map(async (user: any) => {
           try {
+            // Fetch detailed user info
             const userDetailsResponse = await githubApi.get(`/users/${user.login}`);
+            const userDetails = userDetailsResponse.data;
+
+            // Fetch user's top language
+            const topLanguage = await fetchUserTopLanguage(user.login);
+            
             return {
-              ...userDetailsResponse.data,
+              ...userDetails,
+              topLanguage,
               score: user.score
             };
-          } catch (userDetailError) {
-            const errorMessage = isErrorWithMessage(userDetailError) 
-              ? userDetailError.message 
-              : 'Unknown error fetching user details';
-            
-            console.warn(`Could not fetch details for user ${user.login}:`, errorMessage);
-            
-            // Return minimal user information
+          } catch (error) {
+            console.error(`Error fetching details for user ${user.login}:`, error);
             return {
               login: user.login,
               id: user.id,
@@ -173,6 +166,14 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
           }
         })
       );
+
+      // Check for rate limit headers
+      const rateLimitRemaining = response.headers['x-ratelimit-remaining'];
+      const rateLimitReset = response.headers['x-ratelimit-reset'];
+
+      if (rateLimitRemaining && Number(rateLimitRemaining) < 10) {
+        console.warn(`GitHub API rate limit is low. Remaining: ${rateLimitRemaining}. Resets at: ${new Date(Number(rateLimitReset) * 1000)}`);
+      }
 
       return {
         items: users,
@@ -409,5 +410,50 @@ export async function storeUserEmail(username: string, email: string, source: st
         ? error.message 
         : 'Unexpected error in storeUserEmail'
     );
+  }
+}
+
+export async function fetchUserTopLanguage(username: string): Promise<string | null> {
+  try {
+    const githubApi = await getGithubApi();
+    
+    // Fetch user's repositories
+    const response = await githubApi.get(`/users/${username}/repos`, {
+      params: {
+        sort: 'updated',
+        per_page: 100, // Limit to most recent 100 repos for performance
+        type: 'owner' // Only include repos owned by the user
+      }
+    });
+
+    if (!response.data || response.data.length === 0) {
+      return null;
+    }
+
+    // Create a map to store language frequencies
+    const languageFrequency: { [key: string]: number } = {};
+    
+    // Count the languages
+    for (const repo of response.data) {
+      if (repo.language) {
+        languageFrequency[repo.language] = (languageFrequency[repo.language] || 0) + 1;
+      }
+    }
+
+    // Find the most frequent language
+    let topLanguage = null;
+    let maxCount = 0;
+
+    for (const [language, count] of Object.entries(languageFrequency)) {
+      if (count > maxCount) {
+        maxCount = count;
+        topLanguage = language;
+      }
+    }
+
+    return topLanguage;
+  } catch (error) {
+    console.error('Error fetching user top language:', error);
+    return null;
   }
 }
