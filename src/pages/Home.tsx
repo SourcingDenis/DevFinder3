@@ -13,7 +13,7 @@ interface HomeProps {
 export function Home({ isLoggedIn }: HomeProps) {
   const { user } = useAuth();
 
-  // For non-authenticated users
+  // Always render Hero and FAQ for non-authenticated users
   if (!user) {
     return (
       <div className="space-y-12">
@@ -97,6 +97,11 @@ export function Home({ isLoggedIn }: HomeProps) {
     );
   }
 
-  // Fallback
-  return null;
+  // Render Hero and FAQ as a fallback
+  return (
+    <div className="space-y-12">
+      <Hero />
+      <FAQ />
+    </div>
+  );
 }
