@@ -27,11 +27,17 @@ const RequireAuth = ({ children }: { children: ReactNode }) => {
 
 // Memoize AppContent to prevent unnecessary re-renders
 const AppContent = memo(() => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
-  // If user is authenticated, always redirect to /home
-  if (user) {
-    return <Navigate to="/home" replace />;
+  // Show a loading state while authentication is being checked
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold">Loading...</h1>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -39,17 +45,36 @@ const AppContent = memo(() => {
       <Header />
       <main className="flex-1 w-full container max-w-screen-2xl mx-auto px-4 py-6">
         <Routes>
-          <Route path="/" element={<Home isLoggedIn={false} />} />
-          <Route path="/home" element={
+          <Route path="/" element={user ? <Navigate to="/home" replace /> : <Home />} />
+          <Route 
+            path="/home" 
+            element={
+              <RequireAuth>
+                <Home />
+              </RequireAuth>
+            } 
+          />
+          <Route path="/search" element={
             <RequireAuth>
-              <Home isLoggedIn={true} />
+              <Search />
             </RequireAuth>
           } />
-          <Route path="/search" element={<Search />} />
-          <Route path="/bookmarks" element={<SavedProfiles />} />
-          <Route path="/saved-searches" element={<SavedSearches />} />
+          <Route path="/bookmarks" element={
+            <RequireAuth>
+              <SavedProfiles />
+            </RequireAuth>
+          } />
+          <Route path="/saved-searches" element={
+            <RequireAuth>
+              <SavedSearches />
+            </RequireAuth>
+          } />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings" element={
+            <RequireAuth>
+              <Settings />
+            </RequireAuth>
+          } />
           <Route path="/roadmap" element={<ProductRoadmap />} />
         </Routes>
       </main>
