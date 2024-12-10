@@ -1,11 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { FAQ } from '@/components/faq/FAQ';
-import { Hero } from '@/components/layout/Hero';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Search, BookmarkCheck, History, Github } from 'lucide-react';
-import { motion } from "framer-motion";
+import { ArrowRight, Search, BookmarkCheck, History } from 'lucide-react';
 
 interface HomeProps {
   isLoggedIn: boolean;
@@ -22,9 +19,7 @@ export function Home({ isLoggedIn }: HomeProps) {
   if (!user) {
     return (
       <div>
-        <Hero />
         <div className="my-24">
-          <FAQ />
         </div>
       </div>
     );
