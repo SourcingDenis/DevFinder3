@@ -13,13 +13,8 @@ interface HomeProps {
 export function Home({ isLoggedIn }: HomeProps) {
   const { user } = useAuth();
 
-  // If isLoggedIn is true but no user, or isLoggedIn is false but user exists, return null
-  if ((isLoggedIn && !user) || (!isLoggedIn && user)) {
-    return null;
-  }
-
-  // For non-authenticated users (when isLoggedIn is false and no user)
-  if (!isLoggedIn && !user) {
+  // For non-authenticated users
+  if (!user) {
     return (
       <div className="space-y-12">
         <Hero />
