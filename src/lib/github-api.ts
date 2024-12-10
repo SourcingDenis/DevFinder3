@@ -283,11 +283,15 @@ export async function storeUserEmail(username: string, email: string, source: st
       return;
     }
 
+    // Detailed logging for debugging
+    console.log('Storing email:', { username, email, source, userId: user.id });
+
     // Check if the profile already exists
     const { data: existingProfile, error: searchError } = await supabase
       .from('saved_profiles')
       .select('*')
       .eq('username', username)
+      .eq('user_id', user.id)
       .single();
 
     if (searchError && searchError.code !== 'PGRST116') {
@@ -301,13 +305,13 @@ export async function storeUserEmail(username: string, email: string, source: st
         .from('saved_profiles')
         .update({ 
           email, 
-          email_source: source,
-          username
+          email_source: source 
         })
         .eq('id', existingProfile.id);
 
       if (updateError) {
         console.error('Error updating profile email:', updateError);
+        console.error('Update error details:', updateError.details);
       }
     } else {
       // Insert new profile with email
@@ -317,11 +321,13 @@ export async function storeUserEmail(username: string, email: string, source: st
           user_id: user.id,
           username,
           email,
-          email_source: source
+          email_source: source,
+          github_url: `https://github.com/${username}`
         });
 
       if (insertError) {
         console.error('Error inserting new profile:', insertError);
+        console.error('Insert error details:', insertError.details);
       }
     }
   } catch (error) {
