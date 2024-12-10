@@ -8,7 +8,7 @@ export function LoggedInHero() {
   return (
     <div className="container mx-auto px-4 py-16 text-center">
       <h1 className="text-4xl md:text-5xl font-bold mb-6">
-        Welcome, {user?.user_metadata?.full_name || user?.email || 'Developer'}
+        Welcome, {user?.user_metadata?.first_name || user?.email || 'Developer'}
       </h1>
       <p className="text-xl text-muted-foreground mb-8">
         Ready to find your next collaboration or hire?
