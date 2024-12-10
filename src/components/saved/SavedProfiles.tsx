@@ -103,11 +103,11 @@ export function SavedProfiles() {
             username: profile.username,
             github_data: profile.github_data,
             created_at: profile.created_at,
-            list_id: profile.list_id ?? undefined,
-            email: profile.email ?? undefined,
-            email_source: profile.email_source ?? undefined,
-            github_url: profile.github_url ?? undefined,
-            updated_at: profile.updated_at ?? undefined
+            list_id: 'list_id' in profile ? profile.list_id : undefined,
+            email: 'email' in profile ? profile.email : undefined,
+            email_source: 'email_source' in profile ? profile.email_source : undefined,
+            github_url: 'github_url' in profile ? profile.github_url : undefined,
+            updated_at: 'updated_at' in profile ? profile.updated_at : undefined
           };
           
           acc.push(savedProfile);
