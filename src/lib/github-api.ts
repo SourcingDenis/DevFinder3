@@ -2,6 +2,25 @@ import axios from 'axios';
 import { UserSearchParams, GitHubUser, SearchResponse } from '@/types';
 import { supabase } from './supabase';
 
+// Type guard for error objects
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return (
+    error !== null &&
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof (error as { message: string }).message === 'string'
+  );
+}
+
+function isAxiosError(error: unknown): error is axios.AxiosError {
+  return (
+    error !== null &&
+    typeof error === 'object' &&
+    'isAxiosError' in error &&
+    (error as axios.AxiosError).isAxiosError === true
+  );
+}
+
 const getGithubApi = async () => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -136,7 +155,12 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
               score: user.score
             };
           } catch (userDetailError) {
-            console.warn(`Could not fetch details for user ${user.login}:`, userDetailError);
+            const errorMessage = isErrorWithMessage(userDetailError) 
+              ? userDetailError.message 
+              : 'Unknown error fetching user details';
+            
+            console.warn(`Could not fetch details for user ${user.login}:`, errorMessage);
+            
             // Return minimal user information
             return {
               login: user.login,
@@ -155,7 +179,7 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
       };
     } catch (apiError) {
       // Type-safe error handling
-      if (axios.isAxiosError(apiError)) {
+      if (isAxiosError(apiError)) {
         if (apiError.response) {
           console.error('GitHub API Error:', {
             status: apiError.response.status,
@@ -180,12 +204,20 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
       }
 
       // Fallback for any other unexpected errors
-      console.error('Error setting up GitHub API request:', apiError);
-      throw apiError;
+      const errorMessage = isErrorWithMessage(apiError) 
+        ? apiError.message 
+        : 'Unexpected error setting up GitHub API request';
+      
+      console.error('Error setting up GitHub API request:', errorMessage);
+      throw new Error(errorMessage);
     }
   } catch (error) {
-    console.error('Unexpected error in searchUsers:', error);
-    throw error;
+    const errorMessage = isErrorWithMessage(error) 
+      ? error.message 
+      : 'Unexpected error in searchUsers';
+    
+    console.error('Unexpected error in searchUsers:', errorMessage);
+    throw new Error(errorMessage);
   }
 }
 
