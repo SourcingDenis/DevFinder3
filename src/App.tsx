@@ -12,27 +12,17 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthCallback } from '@/pages/auth/callback';
 import { ProductRoadmap } from '@/pages/ProductRoadmap';
 import { useAuth } from '@/components/auth/AuthProvider';
-
-// Wrapper component to handle different routes based on auth status
-const RootRoute = () => {
-  const { user } = useAuth();
-  
-  if (user) {
-    return <Navigate to="/home" replace />;
-  }
-  
-  return <Navigate to="/" replace />;
-};
+import { ReactNode } from 'react';
 
 // RequireAuth component to wrap routes that require authentication
-const RequireAuth = ({ children }) => {
+const RequireAuth = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
 
   if (!user) {
     return <Navigate to="/" replace />;
   }
 
-  return children;
+  return <>{children}</>;
 };
 
 // Memoize AppContent to prevent unnecessary re-renders
