@@ -1,6 +1,5 @@
-
 interface UserInfoProps {
-  name: string;
+  name?: string;
   login: string;
   bio?: string;
   location?: string;

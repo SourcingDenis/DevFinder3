@@ -13,7 +13,12 @@ export function GitHubLoginButton({ confetti = false, variant = 'hero' }: GitHub
   const handleLogin = async () => {
     try {
       console.log('Starting GitHub OAuth flow...');
+      console.log('Callback URL:', import.meta.env.VITE_GITHUB_CALLBACK_URL);
+      console.log('Supabase Client:', supabase);
       
+      // Verify Supabase auth methods
+      console.log('Supabase Auth Methods:', Object.keys(supabase.auth));
+
       // If confetti is enabled, show it and wait for animation to complete
       const confettiPromise = new Promise<void>((resolve) => {
         if (confetti) {
@@ -21,7 +26,7 @@ export function GitHubLoginButton({ confetti = false, variant = 'hero' }: GitHub
           setTimeout(() => {
             setShowConfetti(false);
             resolve();
-          }, 3000); // Increased to 3 seconds for better visibility
+          }, 3000);
         } else {
           resolve();
         }
@@ -30,21 +35,27 @@ export function GitHubLoginButton({ confetti = false, variant = 'hero' }: GitHub
       // Wait for confetti to complete before starting OAuth
       await confettiPromise;
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
+      // Explicitly log the full OAuth options
+      const oauthOptions = {
+        provider: 'github' as const,
         options: {
           redirectTo: import.meta.env.VITE_GITHUB_CALLBACK_URL
         }
-      });
+      };
+      console.log('OAuth Options:', oauthOptions);
+
+      const { data, error } = await supabase.auth.signInWithOAuth(oauthOptions);
       
       if (error) {
         console.error('GitHub OAuth error:', error);
-        throw error;
+        alert(`Login failed: ${error.message}`);
+        return;
       }
       
       console.log('OAuth response:', data);
     } catch (error) {
       console.error('Failed to sign in:', error);
+      alert(`Unexpected login error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
