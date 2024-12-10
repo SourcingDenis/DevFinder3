@@ -13,7 +13,7 @@ interface HomeProps {
 export function Home({ isLoggedIn }: HomeProps) {
   const { user } = useAuth();
 
-  // Always render Hero and FAQ for non-authenticated users
+  // For non-authenticated users
   if (!user) {
     return (
       <div className="space-y-12">
@@ -26,12 +26,18 @@ export function Home({ isLoggedIn }: HomeProps) {
   // For authenticated users
   if (isLoggedIn && user) {
     return (
-      <div className="space-y-8">
-        <div className="flex flex-col items-center justify-center text-center py-12">
-          <h1 className="text-4xl font-bold text-primary">
+      <div className="space-y-12">
+        {/* Welcome Section */}
+        <div className="bg-gradient-to-br from-primary/10 to-background rounded-2xl p-6 sm:p-8 md:p-12 text-center">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-primary">
             Welcome, {user?.user_metadata?.full_name || 'Developer'}!
           </h1>
+          <p className="text-base sm:text-xl text-muted-foreground mb-6">
+            Ready to discover and connect with top developers? Let's get started.
+          </p>
         </div>
+
+        {/* Widgets Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="flex flex-col hover:shadow-lg transition-shadow">
             <CardHeader>
@@ -97,11 +103,6 @@ export function Home({ isLoggedIn }: HomeProps) {
     );
   }
 
-  // Render Hero and FAQ as a fallback
-  return (
-    <div className="space-y-12">
-      <Hero />
-      <FAQ />
-    </div>
-  );
+  // Fallback
+  return null;
 }
