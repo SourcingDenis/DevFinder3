@@ -32,6 +32,17 @@ export function Home({ isLoggedIn }: HomeProps) {
 
   return (
     <div className="space-y-8">
+      {user && (
+        <div className="bg-gradient-to-br from-primary/10 to-primary/10 rounded-lg p-6">
+          <h1 className="text-3xl font-bold text-primary">
+            Welcome, {user.user_metadata?.first_name || user.email?.split('@')[0] || 'Developer'}!
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Ready to discover and connect with top talent?
+          </p>
+        </div>
+      )}
+
       <div className="md:hidden bg-gradient-to-br from-primary/20 via-background to-primary/10 
         dark:from-primary/30 dark:via-background/90 dark:to-primary/20 
         rounded-lg p-8">
