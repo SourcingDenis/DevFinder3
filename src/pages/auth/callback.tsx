@@ -21,12 +21,12 @@ export function AuthCallback() {
           throw new Error('Authentication failed: No provider token');
         }
 
-        // Redirect back to settings page
-        navigate('/settings', { replace: true });
+        // Redirect to home page after successful authentication
+        navigate('/home', { replace: true });
       } catch (error) {
         console.error('Auth callback error:', error);
-        // Redirect to settings page even on error, so user can try again
-        navigate('/settings', { replace: true });
+        // Redirect to home page even on error
+        navigate('/home', { replace: true });
       }
     };
 
