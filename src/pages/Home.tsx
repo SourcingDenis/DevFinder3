@@ -3,6 +3,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@/comp
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Search, BookmarkCheck, History } from 'lucide-react';
+import { Hero } from '@/components/layout/Hero';
+import { FAQ } from '@/components/faq/FAQ';
 
 interface HomeProps {
   isLoggedIn: boolean;
@@ -11,29 +13,29 @@ interface HomeProps {
 export function Home({ isLoggedIn }: HomeProps) {
   const { user } = useAuth();
 
-  // If isLoggedIn is false and user exists, or isLoggedIn is true and no user, return null
+  // If isLoggedIn is true but no user, or isLoggedIn is false but user exists, return null
   if ((isLoggedIn && !user) || (!isLoggedIn && user)) {
     return null;
   }
 
-  if (!user) {
+  // For non-authenticated users (when isLoggedIn is false and no user)
+  if (!isLoggedIn && !user) {
     return (
-      <div>
-        <div className="my-24">
-        </div>
+      <div className="space-y-12">
+        <Hero />
+        <FAQ />
       </div>
     );
   }
 
+  // For authenticated users
   return (
     <div className="space-y-8">
-      {user && (
-        <div className="flex flex-col items-center justify-center text-center py-12">
-          <h1 className="text-4xl font-bold text-primary">
-            Welcome, {user.user_metadata?.full_name || 'Developer'}!
-          </h1>
-        </div>
-      )}
+      <div className="flex flex-col items-center justify-center text-center py-12">
+        <h1 className="text-4xl font-bold text-primary">
+          Welcome, {user.user_metadata?.full_name || 'Developer'}!
+        </h1>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="flex flex-col hover:shadow-lg transition-shadow">
           <CardHeader>

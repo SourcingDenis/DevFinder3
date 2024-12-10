@@ -21,7 +21,7 @@ const RootRoute = () => {
     return <Navigate to="/search" replace />;
   }
   
-  return <Navigate to="/" replace />;
+  return <Home isLoggedIn={false} />;
 };
 
 // Memoize AppContent to prevent unnecessary re-renders
