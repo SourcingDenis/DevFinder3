@@ -24,7 +24,7 @@ export const EmailFinder: React.FC<EmailFinderProps> = ({ username, onClose }) =
 
     setIsSaving(true);
     try {
-      await storeUserEmail(username, email, 'manual');
+      await storeUserEmail(username, email, 'manual_input');
       toast.success('Email saved successfully');
       onClose();
     } catch (error) {
