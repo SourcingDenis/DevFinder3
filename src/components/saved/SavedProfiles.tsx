@@ -84,9 +84,8 @@ export function SavedProfiles() {
       }
 
       // Validate the profiles
-      const mappedProfiles: SavedProfile[] = data.reduce<SavedProfile[]>((acc, profile) => {
-        // Check if profile has all required properties
-        if (
+      const mappedProfiles = data
+        .filter(profile => 
           profile.github_data && 
           typeof profile.github_data === 'object' && 
           'login' in profile.github_data && 
@@ -95,25 +94,23 @@ export function SavedProfiles() {
           'user_id' in profile && 
           'username' in profile && 
           'created_at' in profile
-        ) {
-          // Create a SavedProfile object with all properties, using optional chaining
-          const savedProfile: SavedProfile = {
+        )
+        .map(profile => {
+          const validatedProfile = {
             id: profile.id,
             user_id: profile.user_id,
             username: profile.username,
             github_data: profile.github_data,
             created_at: profile.created_at,
-            list_id: 'list_id' in profile ? profile.list_id : undefined,
-            email: 'email' in profile ? profile.email : undefined,
-            email_source: 'email_source' in profile ? profile.email_source : undefined,
-            github_url: 'github_url' in profile ? profile.github_url : undefined,
-            updated_at: 'updated_at' in profile ? profile.updated_at : undefined
-          };
-          
-          acc.push(savedProfile);
-        }
-        return acc;
-      }, []);
+            list_id: profile.list_id,
+            email: null,
+            email_source: undefined,
+            github_url: undefined,
+            updated_at: profile.updated_at
+          } as SavedProfile;
+
+          return validatedProfile;
+        });
 
       setProfiles(mappedProfiles);
       setIsLoading(false);
