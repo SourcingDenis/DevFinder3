@@ -19,7 +19,7 @@ export function AuthCallback() {
             description: 'Failed to complete authentication. Please try again.',
             variant: 'destructive'
           });
-          navigate('/home');
+          navigate('/', { replace: true });
           return;
         }
 
@@ -30,8 +30,15 @@ export function AuthCallback() {
             description: 'No session found. Please try logging in again.',
             variant: 'destructive'
           });
-          navigate('/home');
+          navigate('/', { replace: true });
           return;
+        }
+
+        // Explicitly store tokens in local storage
+        if (session.access_token) {
+          localStorage.setItem('access_token', session.access_token);
+          localStorage.setItem('refresh_token', session.refresh_token || '');
+          localStorage.setItem('expires_at', (session.expires_at || Date.now() + 3600 * 1000).toString());
         }
 
         // Verify we have the necessary tokens
@@ -42,7 +49,7 @@ export function AuthCallback() {
             description: 'Missing required GitHub access. Please try again.',
             variant: 'destructive'
           });
-          navigate('/home');
+          navigate('/', { replace: true });
           return;
         }
 
@@ -74,8 +81,8 @@ export function AuthCallback() {
           });
         }
 
-        // Redirect to the home page
-        navigate('/home');
+        // Redirect to the main app page
+        navigate('/search', { replace: true });
       } catch (error) {
         console.error('Error in auth callback:', error);
         toast({
@@ -83,7 +90,7 @@ export function AuthCallback() {
           description: 'An unexpected error occurred. Please try again.',
           variant: 'destructive'
         });
-        navigate('/home');
+        navigate('/', { replace: true });
       }
     };
 

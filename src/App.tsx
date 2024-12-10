@@ -11,6 +11,18 @@ import { Settings } from '@/pages/Settings';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthCallback } from '@/pages/auth/callback';
 import { ProductRoadmap } from '@/pages/ProductRoadmap';
+import { useAuth } from '@/components/auth/AuthProvider';
+
+// Wrapper component to handle different routes based on auth status
+const RootRoute = () => {
+  const { user } = useAuth();
+  
+  if (user) {
+    return <Navigate to="/home" replace />;
+  }
+  
+  return <Navigate to="/devfinder.co" replace />;
+};
 
 // Memoize AppContent to prevent unnecessary re-renders
 const AppContent = memo(() => {
@@ -19,8 +31,9 @@ const AppContent = memo(() => {
       <Header />
       <main className="flex-1 w-full container max-w-screen-2xl mx-auto px-4 py-6">
         <Routes>
-          <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/home" element={<Home />} />
+          <Route path="/" element={<RootRoute />} />
+          <Route path="/home" element={<Home isLoggedIn={true} />} />
+          <Route path="/devfinder.co" element={<Home isLoggedIn={false} />} />
           <Route path="/search" element={<Search />} />
           <Route path="/bookmarks" element={<SavedProfiles />} />
           <Route path="/saved-searches" element={<SavedSearches />} />

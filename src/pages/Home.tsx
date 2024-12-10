@@ -7,8 +7,17 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Search, BookmarkCheck, History, Github } from 'lucide-react';
 import { motion } from "framer-motion";
 
-export function Home() {
+interface HomeProps {
+  isLoggedIn: boolean;
+}
+
+export function Home({ isLoggedIn }: HomeProps) {
   const { user } = useAuth();
+
+  // If isLoggedIn is false and user exists, or isLoggedIn is true and no user, return null
+  if ((isLoggedIn && !user) || (!isLoggedIn && user)) {
+    return null;
+  }
 
   if (!user) {
     return (
