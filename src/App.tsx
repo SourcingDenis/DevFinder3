@@ -21,7 +21,7 @@ const RootRoute = () => {
     return <Navigate to="/home" replace />;
   }
   
-  return <Navigate to="/devfinder.co" replace />;
+  return <Navigate to="/" replace />;
 };
 
 // Memoize AppContent to prevent unnecessary re-renders
@@ -33,7 +33,7 @@ const AppContent = memo(() => {
         <Routes>
           <Route path="/" element={<RootRoute />} />
           <Route path="/home" element={<Home isLoggedIn={true} />} />
-          <Route path="/devfinder.co" element={<Home isLoggedIn={false} />} />
+          <Route path="/" element={<Home isLoggedIn={false} />} />
           <Route path="/search" element={<Search />} />
           <Route path="/bookmarks" element={<SavedProfiles />} />
           <Route path="/saved-searches" element={<SavedSearches />} />
