@@ -403,11 +403,11 @@ export async function storeUserEmail(username: string, email: string, source: st
 
     console.log(`Successfully stored email for ${username} from ${source}`);
   } catch (error) {
-    const errorMessage = isErrorWithMessage(error) 
-      ? error.message 
-      : 'Unexpected error in storeUserEmail';
-    
-    console.error('Unexpected error in storeUserEmail:', errorMessage);
-    throw new Error(errorMessage);
+    console.error('Error in storeUserEmail:', error);
+    throw new Error(
+      isErrorWithMessage(error) 
+        ? error.message 
+        : 'Unexpected error in storeUserEmail'
+    );
   }
 }

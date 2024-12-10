@@ -88,7 +88,13 @@ export function SavedProfiles() {
         return profile.github_data && 
                typeof profile.github_data === 'object' && 
                'login' in profile.github_data && 
-               'avatar_url' in profile.github_data;
+               'avatar_url' in profile.github_data && 
+               'id' in profile && 
+               'user_id' in profile && 
+               'username' in profile && 
+               'list_id' in profile && 
+               'created_at' in profile && 
+               'updated_at' in profile;
       });
 
       setProfiles(mappedProfiles);
@@ -107,7 +113,7 @@ export function SavedProfiles() {
     fetchSavedProfiles();
   }, [fetchSavedProfiles]);
 
-  const handleRemoveSavedProfile = useCallback(async (githubUsername: string) => {
+  const handleRemoveSavedProfile = useCallback(async (username: string) => {
     if (!user) return;
 
     try {
@@ -115,7 +121,7 @@ export function SavedProfiles() {
         .from('saved_profiles')
         .delete()
         .eq('user_id', user.id)
-        .eq('username', githubUsername);
+        .eq('username', username);
 
       if (error) {
         toast({
@@ -128,12 +134,12 @@ export function SavedProfiles() {
 
       // Update local state by filtering out the removed profile
       setProfiles(currentProfiles => 
-        currentProfiles.filter(profile => profile.github_data?.login !== githubUsername)
+        currentProfiles.filter(profile => profile.github_data?.login !== username)
       );
 
       toast({
         title: 'Profile Removed',
-        description: `${githubUsername} has been removed from your saved profiles.`,
+        description: `${username} has been removed from your saved profiles.`,
       });
     } catch (err) {
       toast({
@@ -330,7 +336,7 @@ export function SavedProfiles() {
                 const associatedList = lists.find(l => l.id === profile.list_id);
                 console.log('Profile Details:', {
                   profileId: profile.id,
-                  githubUsername: profile.username,
+                  username: profile.username,
                   listId: profile.list_id,
                   listName: associatedList?.name,
                   listsAvailable: lists.map(l => ({ id: l.id, name: l.name }))

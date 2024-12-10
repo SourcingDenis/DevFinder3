@@ -51,8 +51,12 @@ export interface ProfileList {
 export interface SavedProfile {
   id: number;
   user_id: string;
-  github_username: string;
+  username: string;
+  email?: string | null;
+  email_source?: 'github' | 'twitter' | 'linkedin' | 'other';
+  github_url?: string;
   github_data: GitHubUser;
   created_at: string;
+  updated_at?: string;
   list_id?: number;
 }
