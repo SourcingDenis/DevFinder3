@@ -84,17 +84,29 @@ export function SavedProfiles() {
       }
 
       // Validate the profiles
-      const mappedProfiles: SavedProfile[] = data.filter((profile): profile is SavedProfile => {
-        return profile.github_data && 
-               typeof profile.github_data === 'object' && 
-               'login' in profile.github_data && 
-               'avatar_url' in profile.github_data && 
-               'id' in profile && 
-               'user_id' in profile && 
-               'username' in profile && 
-               'created_at' in profile && 
-               (profile.list_id === undefined || profile.list_id !== null);
-      });
+      const mappedProfiles: SavedProfile[] = data
+        .filter(profile => 
+          profile.github_data && 
+          typeof profile.github_data === 'object' && 
+          'login' in profile.github_data && 
+          'avatar_url' in profile.github_data && 
+          'id' in profile && 
+          'user_id' in profile && 
+          'username' in profile && 
+          'created_at' in profile
+        )
+        .map(profile => ({
+          id: profile.id,
+          user_id: profile.user_id,
+          username: profile.username,
+          github_data: profile.github_data,
+          created_at: profile.created_at,
+          list_id: profile.list_id,
+          email: profile.email,
+          email_source: profile.email_source,
+          github_url: profile.github_url,
+          updated_at: profile.updated_at
+        } as SavedProfile));
 
       setProfiles(mappedProfiles);
       setIsLoading(false);
