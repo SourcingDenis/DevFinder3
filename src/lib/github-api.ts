@@ -299,7 +299,11 @@ export async function storeUserEmail(username: string, email: string, source: st
       // Update existing profile with email
       const { error: updateError } = await supabase
         .from('saved_profiles')
-        .update({ email, email_source: source })
+        .update({ 
+          email, 
+          email_source: source,
+          username
+        })
         .eq('id', existingProfile.id);
 
       if (updateError) {
