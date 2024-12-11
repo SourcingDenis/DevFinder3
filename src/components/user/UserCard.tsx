@@ -10,7 +10,7 @@ import { ExternalLink, Calendar, X, Mail, Code2 } from 'lucide-react';
 import { findUserEmail } from '@/lib/github-api';
 import { toast } from 'sonner';
 import { EmailFinder } from './EmailFinder';
-import cn from 'classnames';
+import { cn } from '@/lib/utils';
 
 type UserCardBaseProps = {
   user: GitHubUser;
