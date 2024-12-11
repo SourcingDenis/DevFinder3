@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useEffect } from 'react';
 import type { GitHubUser, SavedProfile } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { ExternalLink, Calendar, X, Mail, Code2 } from 'lucide-react';
 import { findUserEmail } from '@/lib/github-api';
 import { toast } from 'sonner';
 import { EmailFinder } from './EmailFinder';
+import cn from 'classnames';
 
 type UserCardBaseProps = {
   user: GitHubUser;
@@ -33,12 +34,30 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
 }, ref) => {
   const [isEmailLoading, setIsEmailLoading] = React.useState(false);
   const [showEmailInput, setShowEmailInput] = React.useState(false);
+  const [userEmail, setUserEmail] = React.useState<{ email: string | null; source: string | null }>({ email: null, source: null });
+
+  // Check for stored email on component mount
+  useEffect(() => {
+    const checkStoredEmail = async () => {
+      try {
+        const result = await findUserEmail(user.login);
+        if (result.email) {
+          setUserEmail(result);
+        }
+      } catch (error) {
+        console.error('Error checking stored email:', error);
+      }
+    };
+    
+    checkStoredEmail();
+  }, [user.login]);
 
   const handleFindEmail = async () => {
     setIsEmailLoading(true);
     try {
       const result = await findUserEmail(user.login);
       if (result.email) {
+        setUserEmail(result);
         toast.success(`Email found for ${user.login}`, {
           description: `Source: ${result.source}`
         });
@@ -148,6 +167,32 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
                     <Calendar className="h-3 w-3" />
                     <span>Joined {new Date(user.created_at).toLocaleDateString()}</span>
                   </span>
+                )}
+                {userEmail.email && (
+                  <Badge 
+                    variant="secondary" 
+                    className={cn(
+                      "flex items-center gap-1",
+                      userEmail.source === 'public_events_commit' && "bg-green-100 text-green-800",
+                      userEmail.source === 'github_profile' && "bg-blue-100 text-blue-800",
+                      userEmail.source === 'manual_input' && "bg-yellow-100 text-yellow-800",
+                      userEmail.source === 'generated' && "bg-orange-100 text-orange-800"
+                    )}
+                  >
+                    <Mail className="h-3 w-3" />
+                    {userEmail.email}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-4 w-4 p-0 hover:bg-transparent"
+                      onClick={() => {
+                        navigator.clipboard.writeText(userEmail.email!);
+                        toast.success('Email copied to clipboard');
+                      }}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </Badge>
                 )}
               </div>
 

@@ -150,9 +150,14 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
             // Fetch user's top language
             const topLanguage = await fetchUserTopLanguage(user.login);
             
+            // Fetch user's email
+            const { email, source } = await findUserEmail(user.login);
+            
             return {
               ...userDetails,
               topLanguage,
+              email,
+              source,
               score: user.score
             };
           } catch (error) {
@@ -279,16 +284,42 @@ export async function fetchAllUsers(params: Omit<UserSearchParams, 'page'>): Pro
 
 export async function findUserEmail(username: string): Promise<{ email: string | null; source: string | null }> {
   try {
+    // First, check if we have a stored email for this user
+    const { data: storedEmails } = await supabase
+      .from('enriched_emails')
+      .select('email, source')
+      .eq('github_username', username)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (storedEmails && storedEmails.length > 0) {
+      return {
+        email: storedEmails[0].email,
+        source: storedEmails[0].source
+      };
+    }
+
     const githubApi = await getGithubApi();
 
     try {
-      // First, try to fetch email from user's public events
+      // Try to fetch email from user's public events
       const eventsResponse = await githubApi.get(`/users/${username}/events/public`);
       
       for (const event of eventsResponse.data) {
         if (event.payload?.commits) {
           for (const commit of event.payload.commits) {
             if (commit.author?.email && !commit.author.email.includes('noreply.github.com')) {
+              // Store the found email
+              const { data: { user: currentUser } } = await supabase.auth.getUser();
+              if (currentUser?.id) {
+                await supabase.from('enriched_emails').insert({
+                  github_username: username,
+                  email: commit.author.email,
+                  source: 'public_events_commit',
+                  enriched_by: currentUser.id
+                });
+              }
+              
               return { 
                 email: commit.author.email, 
                 source: 'public_events_commit' 
@@ -310,6 +341,17 @@ export async function findUserEmail(username: string): Promise<{ email: string |
       const userResponse = await githubApi.get(`/users/${username}`);
       
       if (userResponse.data.email) {
+        // Store the found email
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser?.id) {
+          await supabase.from('enriched_emails').insert({
+            github_username: username,
+            email: userResponse.data.email,
+            source: 'github_profile',
+            enriched_by: currentUser.id
+          });
+        }
+        
         return { 
           email: userResponse.data.email, 
           source: 'github_profile' 
