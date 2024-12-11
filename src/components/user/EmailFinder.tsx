@@ -8,9 +8,10 @@ import { toast } from 'sonner';
 type EmailFinderProps = {
   username: string;
   onClose: () => void;
+  onEmailSaved?: (email: string, source: string) => void;
 };
 
-export const EmailFinder: React.FC<EmailFinderProps> = ({ username, onClose }) => {
+export const EmailFinder: React.FC<EmailFinderProps> = ({ username, onClose, onEmailSaved }) => {
   const [email, setEmail] = useState(`${username.toLowerCase()}@gmail.com`);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -26,6 +27,7 @@ export const EmailFinder: React.FC<EmailFinderProps> = ({ username, onClose }) =
     try {
       await storeUserEmail(username, email, 'manual_input');
       toast.success('Email saved successfully');
+      onEmailSaved?.(email, 'manual_input');
       onClose();
     } catch (error) {
       toast.error('Failed to save email', {

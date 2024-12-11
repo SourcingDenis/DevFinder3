@@ -34,11 +34,16 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
 }, ref) => {
   const [isEmailLoading, setIsEmailLoading] = React.useState(false);
   const [showEmailInput, setShowEmailInput] = React.useState(false);
-  const [userEmail, setUserEmail] = React.useState<{ email: string | null; source: string | null }>({ email: null, source: null });
+  const [userEmail, setUserEmail] = React.useState<{ email: string | null; source: string | null }>({
+    email: user.email || null,
+    source: user.source || null
+  });
 
   // Check for stored email on component mount
-  useEffect(() => {
+  React.useEffect(() => {
     const checkStoredEmail = async () => {
+      if (userEmail.email) return; // Skip if we already have an email
+      
       try {
         const result = await findUserEmail(user.login);
         if (result.email) {
@@ -50,7 +55,7 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
     };
     
     checkStoredEmail();
-  }, [user.login]);
+  }, [user.login, userEmail.email]);
 
   const handleFindEmail = async () => {
     setIsEmailLoading(true);
@@ -72,6 +77,10 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
     } finally {
       setIsEmailLoading(false);
     }
+  };
+
+  const handleEmailSaved = (email: string, source: string) => {
+    setUserEmail({ email, source });
   };
 
   console.log('UserCard Props:', { user: user.login, listName, isSaved });
@@ -152,7 +161,7 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
               </div>
 
               {/* Username and join date */}
-              <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
+              <div className="flex items-center flex-wrap gap-3 text-sm text-muted-foreground mb-3">
                 <a 
                   href={user.html_url}
                   target="_blank"
@@ -215,6 +224,7 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
               <EmailFinder 
                 username={user.login}
                 onClose={() => setShowEmailInput(false)}
+                onEmailSaved={handleEmailSaved}
               />
             </div>
           )}
