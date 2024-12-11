@@ -1,19 +1,31 @@
-import React, { forwardRef, useState, useEffect } from 'react';
+import React, { forwardRef } from 'react';
 import type { GitHubUser, SavedProfile } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { SaveProfileButton } from './SaveProfileButton';
 import { UserStats } from './UserStats';
 import { UserInfo } from './UserInfo';
-import { ExternalLink, Calendar, X, Mail, Code2, Copy } from 'lucide-react';
+import { 
+  Mail, 
+  ExternalLink,
+  Copy,
+  X,
+  Code2,
+  Calendar
+} from 'lucide-react';
 import { findUserEmail } from '@/lib/github-api';
 import { toast } from 'sonner';
 import { EmailFinder } from './EmailFinder';
-import { cn } from '@/lib/utils';
+
+// Extend GitHubUser interface to include source
+interface ExtendedGitHubUser extends GitHubUser {
+  source?: string | null;
+}
 
 type UserCardBaseProps = {
-  user: GitHubUser;
+  user: ExtendedGitHubUser;
   onSave?: (profile: SavedProfile) => void;
   onRemove?: (githubUsername: string) => void;
   className?: string;
@@ -34,7 +46,10 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
 }, ref) => {
   const [isEmailLoading, setIsEmailLoading] = React.useState(false);
   const [showEmailInput, setShowEmailInput] = React.useState(false);
-  const [userEmail, setUserEmail] = React.useState<{ email: string | null; source: string | null }>({
+  const [userEmail, setUserEmail] = React.useState<{
+    email: string | null;
+    source: string | null;
+  }>({
     email: user.email || null,
     source: user.source || null
   });
