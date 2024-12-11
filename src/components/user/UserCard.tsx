@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect } from 'react';
+import React, { forwardRef, useState, useEffect } from 'react';
 import type { GitHubUser, SavedProfile } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
