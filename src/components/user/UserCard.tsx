@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { SaveProfileButton } from './SaveProfileButton';
 import { UserStats } from './UserStats';
 import { UserInfo } from './UserInfo';
-import { ExternalLink, Calendar, X, Mail, Code2 } from 'lucide-react';
+import { ExternalLink, Calendar, X, Mail, Code2, Copy } from 'lucide-react';
 import { findUserEmail } from '@/lib/github-api';
 import { toast } from 'sonner';
 import { EmailFinder } from './EmailFinder';
@@ -178,30 +178,48 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
                   </span>
                 )}
                 {userEmail.email && (
-                  <Badge 
-                    variant="secondary" 
-                    className={cn(
-                      "flex items-center gap-1",
-                      userEmail.source === 'public_events_commit' && "bg-green-100 text-green-800",
-                      userEmail.source === 'github_profile' && "bg-blue-100 text-blue-800",
-                      userEmail.source === 'manual_input' && "bg-yellow-100 text-yellow-800",
-                      userEmail.source === 'generated' && "bg-orange-100 text-orange-800"
+                  <div className="flex items-center gap-2">
+                    {userEmail.source === 'public_events_commit' ? (
+                      <>
+                        <span>{userEmail.email}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => {
+                            navigator.clipboard.writeText(userEmail.email!);
+                            toast.success('Email copied to clipboard');
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Badge 
+                        variant="secondary" 
+                        className={cn(
+                          "flex items-center gap-1",
+                          userEmail.source === 'github_profile' && "bg-blue-100 text-blue-800",
+                          userEmail.source === 'manual_input' && "bg-yellow-100 text-yellow-800",
+                          userEmail.source === 'generated' && "bg-orange-100 text-orange-800"
+                        )}
+                      >
+                        <Mail className="h-3 w-3" />
+                        {userEmail.email}
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => {
+                            navigator.clipboard.writeText(userEmail.email!);
+                            toast.success('Email copied to clipboard');
+                          }}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      </Badge>
                     )}
-                  >
-                    <Mail className="h-3 w-3" />
-                    {userEmail.email}
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-4 w-4 p-0 hover:bg-transparent"
-                      onClick={() => {
-                        navigator.clipboard.writeText(userEmail.email!);
-                        toast.success('Email copied to clipboard');
-                      }}
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                    </Button>
-                  </Badge>
+                  </div>
                 )}
               </div>
 
