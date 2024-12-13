@@ -99,6 +99,30 @@ const getGithubApi = async () => {
   }
 };
 
+interface EmailResult {
+  email: string | null;
+  source: string | null;
+  confidence: number;
+}
+
+interface StoredEmail {
+  id: number;
+  username: string;
+  email: string;
+  source: string;
+  confidence: number;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // ms
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function searchUsers(params: UserSearchParams): Promise<SearchResponse<GitHubUser>> {
   try {
     const githubApi = await getGithubApi();
@@ -238,6 +262,115 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
   }
 }
 
+export async function findUserEmail(username: string): Promise<{ email: string | null; source: string | null }> {
+  try {
+    // First, check if we have a stored email for this user
+    const { data: storedEmails } = await supabase
+      .from('enriched_emails')
+      .select('email, source')
+      .eq('github_username', username)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (storedEmails && storedEmails.length > 0) {
+      return {
+        email: storedEmails[0].email,
+        source: storedEmails[0].source
+      };
+    }
+
+    const githubApi = await getGithubApi();
+    
+    // Initialize potential email sources
+    const emailSources: Promise<EmailResult>[] = [
+      // Check user profile
+      githubApi.get(`/users/${username}`).then(response => ({
+        email: response.data.email,
+        source: 'github_profile',
+        confidence: 1.0
+      })).catch(() => ({
+        email: null,
+        source: null,
+        confidence: 0
+      })),
+      
+      // Check public events
+      githubApi.get(`/users/${username}/events/public`).then(response => {
+        const commits = response.data
+          .filter(event => event.payload?.commits)
+          .flatMap(event => event.payload.commits)
+          .filter(commit => commit?.author?.email);
+
+        const emailFrequency = commits.reduce((acc: Record<string, number>, commit: any) => {
+          const email = commit.author.email;
+          if (!email.includes('noreply.github.com')) {
+            acc[email] = (acc[email] || 0) + 1;
+          }
+          return acc;
+        }, {});
+
+        const [mostFrequentEmail] = Object.entries(emailFrequency)
+          .sort(([, a], [, b]) => b - a);
+
+        return mostFrequentEmail ? {
+          email: mostFrequentEmail[0],
+          source: 'public_events_commit',
+          confidence: mostFrequentEmail[1] / commits.length
+        } : {
+          email: null,
+          source: null,
+          confidence: 0
+        };
+      }).catch(() => ({
+        email: null,
+        source: null,
+        confidence: 0
+      }))
+    ];
+
+    // Wait for all email sources to resolve
+    const results = await Promise.all(emailSources);
+    
+    // Sort by confidence and pick the best result
+    const bestResult = results
+      .filter(result => result.email !== null)
+      .sort((a, b) => b.confidence - a.confidence)[0];
+
+    if (bestResult?.email) {
+      // Store the found email
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser?.id) {
+        await supabase.from('enriched_emails').insert({
+          github_username: username,
+          email: bestResult.email,
+          source: bestResult.source,
+          enriched_by: currentUser.id,
+          confidence: bestResult.confidence
+        });
+      }
+
+      return {
+        email: bestResult.email,
+        source: bestResult.source
+      };
+    }
+
+    return { email: null, source: null };
+  } catch (error) {
+    const errorMessage = isErrorWithMessage(error) 
+      ? error.message 
+      : 'Unexpected error in findUserEmail';
+    
+    console.error('Unexpected error in findUserEmail:', {
+      username,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
+    throw new Error(errorMessage);
+  }
+}
+
 export async function fetchAllUsers(params: Omit<UserSearchParams, 'page'>): Promise<GitHubUser[]> {
   try {
     const allUsers: GitHubUser[] = [];
@@ -291,176 +424,126 @@ export async function fetchAllUsers(params: Omit<UserSearchParams, 'page'>): Pro
   }
 }
 
-export async function findUserEmail(username: string): Promise<{ email: string | null; source: string | null }> {
-  try {
-    // First, check if we have a stored email for this user
-    const { data: storedEmails } = await supabase
-      .from('enriched_emails')
-      .select('email, source')
-      .eq('github_username', username)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (storedEmails && storedEmails.length > 0) {
-      return {
-        email: storedEmails[0].email,
-        source: storedEmails[0].source
-      };
-    }
-
-    const githubApi = await getGithubApi();
-
+export async function storeUserEmail(
+  username: string, 
+  email: string, 
+  source: string, 
+  confidence: number = 1.0
+): Promise<void> {
+  let retries = 0;
+  
+  while (retries < MAX_RETRIES) {
     try {
-      // Try to fetch email from user's public events
-      const eventsResponse = await githubApi.get(`/users/${username}/events/public`);
-      
-      for (const event of eventsResponse.data) {
-        if (event.payload?.commits) {
-          for (const commit of event.payload.commits) {
-            if (commit.author?.email && !commit.author.email.includes('noreply.github.com')) {
-              // Store the found email
-              const { data: { user: currentUser } } = await supabase.auth.getUser();
-              if (currentUser?.id) {
-                await supabase.from('enriched_emails').insert({
-                  github_username: username,
-                  email: commit.author.email,
-                  source: 'public_events_commit',
-                  enriched_by: currentUser.id
-                });
-              }
-              
-              return { 
-                email: commit.author.email, 
-                source: 'public_events_commit' 
-              };
+      // Input validation
+      if (!username?.trim() || !email?.trim() || !source?.trim()) {
+        throw new Error('Invalid input: username, email, and source are required');
+      }
+
+      // Email validation with RFC 5322 standard
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      if (!emailRegex.test(email)) {
+        throw new Error('Invalid email format');
+      }
+
+      // Source validation
+      const validSources = ['public_events_commit', 'github_profile', 'manual_input'];
+      if (!validSources.includes(source)) {
+        throw new Error(`Invalid email source. Must be one of: ${validSources.join(', ')}`);
+      }
+
+      // Confidence validation
+      if (confidence < 0 || confidence > 1) {
+        throw new Error('Confidence must be between 0 and 1');
+      }
+
+      // Start transaction
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser?.id) {
+        throw new Error('User must be authenticated to store emails');
+      }
+
+      // Fetch existing record with FOR UPDATE lock
+      const { data: existingEmails, error: selectError } = await supabase
+        .from('enriched_emails')
+        .select('*')
+        .eq('github_username', username)
+        .order('confidence', { ascending: false })
+        .limit(1);
+
+      if (selectError) {
+        throw selectError;
+      }
+
+      const existingEmail = existingEmails?.[0] as StoredEmail | undefined;
+      const now = new Date().toISOString();
+
+      if (existingEmail) {
+        // Only update if new email has higher confidence or is more recent
+        if (confidence > (existingEmail.confidence || 0)) {
+          const { error: updateError } = await supabase
+            .from('enriched_emails')
+            .update({ 
+              email,
+              source,
+              confidence,
+              enriched_by: currentUser.id,
+              updated_at: now,
+              version: existingEmail.version + 1
+            })
+            .eq('id', existingEmail.id)
+            .eq('version', existingEmail.version); // Optimistic locking
+
+          if (updateError) {
+            if (updateError.code === '23505') { // Unique violation
+              continue; // Retry
             }
+            throw updateError;
           }
         }
-      }
-    } catch (eventsError) {
-      const errorMessage = isErrorWithMessage(eventsError) 
-        ? eventsError.message 
-        : 'Unknown error fetching public events';
-      
-      console.warn(`Could not fetch public events for ${username}:`, errorMessage);
-    }
-
-    try {
-      // If no email found in events, try user's profile
-      const userResponse = await githubApi.get(`/users/${username}`);
-      
-      if (userResponse.data.email) {
-        // Store the found email
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (currentUser?.id) {
-          await supabase.from('enriched_emails').insert({
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('enriched_emails')
+          .insert({ 
             github_username: username,
-            email: userResponse.data.email,
-            source: 'github_profile',
-            enriched_by: currentUser.id
+            email,
+            source,
+            confidence,
+            enriched_by: currentUser.id,
+            created_at: now,
+            updated_at: now,
+            version: 1
           });
+
+        if (insertError) {
+          if (insertError.code === '23505') { // Unique violation
+            continue; // Retry
+          }
+          throw insertError;
         }
-        
-        return { 
-          email: userResponse.data.email, 
-          source: 'github_profile' 
-        };
       }
-    } catch (profileError) {
-      const errorMessage = isErrorWithMessage(profileError) 
-        ? profileError.message 
-        : 'Unknown error fetching user profile';
+
+      // Successfully stored email
+      return;
+    } catch (error) {
+      retries++;
       
-      console.warn(`Could not fetch profile for ${username}:`, errorMessage);
-    }
-
-    // No email found
-    return { 
-      email: null, 
-      source: null 
-    };
-  } catch (error) {
-    const errorMessage = isErrorWithMessage(error) 
-      ? error.message 
-      : 'Unexpected error in findUserEmail';
-    
-    console.error('Unexpected error in findUserEmail:', errorMessage);
-    throw new Error(errorMessage);
-  }
-}
-
-export async function storeUserEmail(username: string, email: string, source: string): Promise<void> {
-  try {
-    // Validate inputs
-    if (!username || !email || !source) {
-      throw new Error('Invalid input: username, email, and source are required');
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new Error('Invalid email format');
-    }
-
-    // Validate source
-    const validSources = ['public_events_commit', 'github_profile', 'manual_input'];
-    if (!validSources.includes(source)) {
-      throw new Error(`Invalid email source. Must be one of: ${validSources.join(', ')}`);
-    }
-
-    // Check if user already exists
-    const { data: existingUser, error: existError } = await supabase
-      .from('saved_profiles')
-      .select('*')
-      .eq('username', username)
-      .single();
-
-    if (existError && existError.code !== 'PGRST116') {
-      console.error('Error checking existing user:', existError);
-      throw existError;
-    }
-
-    if (existingUser) {
-      // Update existing user
-      const { error: updateError } = await supabase
-        .from('saved_profiles')
-        .update({ 
-          email, 
-          email_source: source,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('username', username);
-
-      if (updateError) {
-        console.error('Error updating user email:', updateError);
-        throw updateError;
-      }
-    } else {
-      // Insert new user
-      const { error: insertError } = await supabase
-        .from('saved_profiles')
-        .insert({ 
-          username, 
-          email, 
-          email_source: source,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString() 
-        });
-
-      if (insertError) {
-        console.error('Error inserting user email:', insertError);
-        throw insertError;
-      }
-    }
-
-    console.log(`Successfully stored email for ${username} from ${source}`);
-  } catch (error) {
-    console.error('Error in storeUserEmail:', error);
-    throw new Error(
-      isErrorWithMessage(error) 
+      const errorMessage = isErrorWithMessage(error) 
         ? error.message 
-        : 'Unexpected error in storeUserEmail'
-    );
+        : 'Unexpected error in storeUserEmail';
+      
+      if (retries === MAX_RETRIES) {
+        console.error('Failed to store user email after max retries:', {
+          username,
+          error: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        throw new Error(`Failed to store email after ${MAX_RETRIES} attempts: ${errorMessage}`);
+      }
+      
+      // Wait before retrying
+      await sleep(RETRY_DELAY * retries);
+    }
   }
 }
 
