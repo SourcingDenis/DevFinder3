@@ -23,35 +23,43 @@ function isAxiosError(error: unknown): error is AxiosError {
 
 const getGithubApi = async () => {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
-    if (!session?.provider_token) {
-      console.error('No GitHub token available. Attempting to refresh authentication.');
+    if (sessionError) {
+      throw new Error('Failed to get session');
+    }
+
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    if (!session.provider_token) {
       // Attempt to refresh the session
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       
       if (refreshError || !refreshData.session?.provider_token) {
-        console.error('Failed to refresh GitHub authentication token.');
-        throw new Error('Authentication failed. Please sign in again.');
+        throw new Error('Failed to refresh GitHub authentication token');
       }
+
+      // Update session with new token
+      session.provider_token = refreshData.session.provider_token;
     }
 
     const api = axios.create({
       baseURL: 'https://api.github.com',
       headers: {
-        Authorization: `Bearer ${session?.provider_token || ''}`,
+        Authorization: `Bearer ${session.provider_token}`,
         Accept: 'application/vnd.github.v3+json',
         'X-GitHub-Api-Version': '2022-11-28'
       }
     });
 
-    // Add response interceptor to handle token refresh
+    // Add response interceptor for automatic token refresh
     api.interceptors.response.use(
       response => response,
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-        // Check if the error is due to an unauthorized request
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
@@ -63,18 +71,19 @@ const getGithubApi = async () => {
               throw new Error('Failed to refresh authentication');
             }
 
-            // Update the authorization header
+            // Update the authorization header with new token
             if (originalRequest.headers) {
               originalRequest.headers['Authorization'] = `Bearer ${refreshData.session.provider_token}`;
             }
             
-            // Retry the original request
             return axios(originalRequest);
           } catch (refreshError) {
             console.error('Failed to refresh token:', refreshError);
-            // Force re-authentication
-            await supabase.auth.signOut();
-            window.location.href = '/'; // Redirect to home/login page
+            // Only sign out if refresh token is expired
+            if (isAxiosError(refreshError) && refreshError.response?.status === 401) {
+              await supabase.auth.signOut();
+              window.location.href = '/';
+            }
             return Promise.reject(refreshError);
           }
         }

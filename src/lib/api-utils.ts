@@ -1,43 +1,6 @@
 import axios from 'axios';
 import { UserSearchParams, GitHubUser } from '@/types';
 
-// Simple in-memory LRU cache
-class LRUCache<K extends string | number, V> {
-  private cache: Map<K, V> = new Map();
-  private maxSize: number;
-
-  constructor(maxSize: number = 50) {
-    this.maxSize = maxSize;
-  }
-
-  get(key: K): V | undefined {
-    const item = this.cache.get(key);
-    if (item) {
-      // Move the accessed item to the end to show it was recently used
-      this.cache.delete(key);
-      this.cache.set(key, item);
-    }
-    return item;
-  }
-
-  set(key: K, value: V): void {
-    // If cache is full, delete the least recently used item
-    if (this.cache.size >= this.maxSize) {
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
-      }
-    }
-    this.cache.set(key, value);
-  }
-
-  delete(key: K | undefined): void {
-    if (key !== undefined && this.cache.has(key)) {
-      this.cache.delete(key);
-    }
-  }
-}
-
 // Debounce function to limit API call frequency
 export function debounce<F extends (...args: any[]) => any>(
   func: F, 
@@ -59,10 +22,13 @@ export function debounce<F extends (...args: any[]) => any>(
 
 // Cached and optimized search users function
 export class GitHubSearchService {
-  private searchCache = new LRUCache<string, GitHubUser[]>();
   private static instance: GitHubSearchService;
+  private searchCache: Map<string, { items: GitHubUser[]; total_count: number; timestamp: number }>;
+  private CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-  private constructor() {}
+  private constructor() {
+    this.searchCache = new Map();
+  }
 
   static getInstance(): GitHubSearchService {
     if (!GitHubSearchService.instance) {
@@ -76,47 +42,120 @@ export class GitHubSearchService {
     language, 
     locations, 
     page = 1, 
-    per_page = 10 
-  }: UserSearchParams): Promise<{ items: GitHubUser[], total_count: number }> {
-    // Create a unique cache key based on search parameters
-    const cacheKey = JSON.stringify({ query, language, locations, page, per_page });
+    per_page = 10,
+    sort,
+    order
+  }: UserSearchParams): Promise<{ items: GitHubUser[]; total_count: number }> {
+    // Create a unique cache key based on all search parameters
+    const cacheKey = JSON.stringify({ query, language, locations, page, per_page, sort, order });
     
     // Check cache first
     const cachedResult = this.searchCache.get(cacheKey);
-    if (cachedResult) {
+    if (cachedResult && Date.now() - cachedResult.timestamp < this.CACHE_DURATION) {
       return { 
-        items: cachedResult, 
-        total_count: cachedResult.length 
+        items: cachedResult.items, 
+        total_count: cachedResult.total_count 
       };
     }
 
-    // Construct search query
-    let searchQuery = query;
+    // Construct optimized search query
+    let searchQuery = query || '';
     if (language) searchQuery += ` language:${language}`;
-    if (locations?.length) searchQuery += ` ${locations.map(loc => `location:${loc}`).join(' ')}`;
+    if (locations?.length) {
+      // Use location:X OR location:Y for better performance
+      searchQuery += ` (${locations.map(loc => `location:${loc}`).join(' OR ')})`;
+    }
 
     try {
-      const response = await axios.get('https://api.github.com/search/users', {
-        params: {
-          q: searchQuery,
-          page,
-          per_page
-        },
+      const githubApi = axios.create({
+        baseURL: 'https://api.github.com',
         headers: {
           'Accept': 'application/vnd.github.v3+json'
         }
       });
+      const response = await githubApi.get('/search/users', {
+        params: {
+          q: searchQuery.trim(),
+          sort: sort || 'best-match',
+          order: order || 'desc',
+          per_page,
+          page
+        }
+      });
 
-      // Cache the result
-      this.searchCache.set(cacheKey, response.data.items);
+      // Fetch detailed information for each user in parallel
+      const userDetailsPromises = response.data.items.map(async (user: any) => {
+        try {
+          const [userDetails, topLanguage] = await Promise.all([
+            githubApi.get(`/users/${user.login}`),
+            this.fetchUserTopLanguage(user.login)
+          ]);
+
+          return {
+            ...userDetails.data,
+            topLanguage,
+            score: user.score
+          };
+        } catch (error) {
+          console.error(`Error fetching details for user ${user.login}:`, error);
+          return {
+            login: user.login,
+            id: user.id,
+            avatar_url: user.avatar_url,
+            score: user.score
+          };
+        }
+      });
+
+      const users = await Promise.all(userDetailsPromises);
+
+      // Cache the result with timestamp
+      this.searchCache.set(cacheKey, {
+        items: users,
+        total_count: response.data.total_count,
+        timestamp: Date.now()
+      });
 
       return {
-        items: response.data.items,
+        items: users,
         total_count: response.data.total_count
       };
     } catch (error) {
       console.error('Error searching GitHub users:', error);
-      return { items: [], total_count: 0 };
+      throw error;
+    }
+  }
+
+  private async fetchUserTopLanguage(username: string): Promise<string | null> {
+    try {
+      const githubApi = axios.create({
+        baseURL: 'https://api.github.com',
+        headers: {
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      const response = await githubApi.get(`/users/${username}/repos`, {
+        params: {
+          sort: 'updated',
+          per_page: 5
+        }
+      });
+
+      const languages = new Map<string, number>();
+      
+      for (const repo of response.data) {
+        if (repo.language) {
+          languages.set(repo.language, (languages.get(repo.language) || 0) + 1);
+        }
+      }
+
+      if (languages.size === 0) return null;
+
+      return Array.from(languages.entries())
+        .sort((a, b) => b[1] - a[1])[0][0];
+    } catch (error) {
+      console.error(`Error fetching top language for user ${username}:`, error);
+      return null;
     }
   }
 }
