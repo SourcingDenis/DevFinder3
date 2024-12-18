@@ -5,17 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Search, ArrowRight } from 'lucide-react';
-import type { UserSearchParams } from '@/types';
+import type { UserSearchParams, RecentSearch } from '@/types/search';
 
 interface SearchHistoryProps {
   onSearch?: (params: Partial<UserSearchParams>) => void;
-}
-
-interface RecentSearch {
-  id: string;
-  query: string;
-  search_params: Omit<UserSearchParams, 'page'>;
-  created_at: string;
 }
 
 export function SearchHistory({ onSearch }: SearchHistoryProps) {
@@ -28,10 +21,10 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
     const fetchRecentSearches = async () => {
       const { data, error } = await supabase
         .from('recent_searches')
-        .select('id, query, search_params, created_at')
+        .select('id, query, search_params, created_at, updated_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(10); // Fetch more initially to allow for deduplication
+        .limit(10);
 
       if (error) {
         console.error('Error fetching recent searches:', error);

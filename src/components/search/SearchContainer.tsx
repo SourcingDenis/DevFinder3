@@ -17,6 +17,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchState } from '@/hooks/useSearchState';
 import { toast } from 'react-toastify';
 import type { SortOption } from '@/components/search/SortSelect';
+import type { UserSearchParams } from '@/types/search';
 import { supabase } from '@/lib/supabase'; // Assuming supabase is imported from somewhere
 
 const RESULTS_PER_PAGE = 30;
@@ -151,7 +152,7 @@ export function SearchContainer({ onSearch }: { onSearch?: () => void }) {
     }
   }, [user]);
 
-  const handleSearch = useCallback((params: Partial<typeof state.searchParams>) => {
+  const handleSearch = useCallback((params: Partial<UserSearchParams>) => {
     const updatedParams = {
       ...state.searchParams,
       ...params,
