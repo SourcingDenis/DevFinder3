@@ -32,6 +32,7 @@ export interface GitHubUser {
   topLanguage?: string | null;
   hireable?: boolean;
   languages?: string[];
+  score?: number; // Add score property for search results
 }
 
 export interface SearchResponse<T> {

@@ -22,19 +22,12 @@ export function debounce<F extends (...args: any[]) => any>(
 
 // Cached and optimized search users function
 export class GitHubSearchService {
-  private static instance: GitHubSearchService;
-  private searchCache: Map<string, { items: GitHubUser[]; total_count: number; timestamp: number }>;
   private CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-  private constructor() {
-    this.searchCache = new Map();
-  }
+  private constructor() {}
 
   static getInstance(): GitHubSearchService {
-    if (!GitHubSearchService.instance) {
-      GitHubSearchService.instance = new GitHubSearchService();
-    }
-    return GitHubSearchService.instance;
+    return new GitHubSearchService();
   }
 
   async searchUsers({ 
@@ -46,34 +39,49 @@ export class GitHubSearchService {
     sort,
     order
   }: UserSearchParams): Promise<{ items: GitHubUser[]; total_count: number }> {
-    // Create a unique cache key based on all search parameters
     const cacheKey = JSON.stringify({ query, language, locations, page, per_page, sort, order });
     
-    // Check cache first
-    const cachedResult = this.searchCache.get(cacheKey);
-    if (cachedResult && Date.now() - cachedResult.timestamp < this.CACHE_DURATION) {
-      return { 
-        items: cachedResult.items, 
-        total_count: cachedResult.total_count 
-      };
+    // Use localStorage for persistent caching
+    const cachedResult = localStorage.getItem(`github_search_${cacheKey}`);
+    if (cachedResult) {
+      const parsed = JSON.parse(cachedResult);
+      if (Date.now() - parsed.timestamp < this.CACHE_DURATION) {
+        return { 
+          items: parsed.items, 
+          total_count: parsed.total_count 
+        };
+      }
     }
 
-    // Construct optimized search query
-    let searchQuery = query || '';
-    if (language) searchQuery += ` language:${language}`;
-    if (locations?.length) {
-      // Use location:X OR location:Y for better performance
-      searchQuery += ` (${locations.map(loc => `location:${loc}`).join(' OR ')})`;
-    }
+    // Optimize search query construction
+    const searchQuery = [
+      query,
+      language && `language:${language}`,
+      locations?.length && `(${locations.map(loc => `location:${loc}`).join(' OR ')})`
+    ].filter(Boolean).join(' ');
 
     try {
       const githubApi = axios.create({
         baseURL: 'https://api.github.com',
         headers: {
-          'Accept': 'application/vnd.github.v3+json'
+          'Accept': 'application/vnd.github.v3+json',
+          ...(import.meta.env.VITE_GITHUB_TOKEN && {
+            'Authorization': `token ${import.meta.env.VITE_GITHUB_TOKEN}`
+          })
         }
       });
-      const response = await githubApi.get('/search/users', {
+
+      // Batch user search request
+      const { data: searchData } = await githubApi.get<{
+        items: Array<{
+          login: string;
+          id: number;
+          avatar_url: string;
+          html_url: string;
+          score: number;
+        }>;
+        total_count: number;
+      }>('/search/users', {
         params: {
           q: searchQuery.trim(),
           sort: sort || 'best-match',
@@ -83,79 +91,61 @@ export class GitHubSearchService {
         }
       });
 
-      // Fetch detailed information for each user in parallel
-      const userDetailsPromises = response.data.items.map(async (user: any) => {
-        try {
-          const [userDetails, topLanguage] = await Promise.all([
-            githubApi.get(`/users/${user.login}`),
-            this.fetchUserTopLanguage(user.login)
-          ]);
+      // Batch fetch user details in chunks to avoid rate limiting
+      const users: GitHubUser[] = [];
+      const chunkSize = 5;
+      for (let i = 0; i < searchData.items.length; i += chunkSize) {
+        const chunk = searchData.items.slice(i, i + chunkSize);
+        const detailsPromises = chunk.map((user) => 
+          githubApi.get<Omit<GitHubUser, 'score'>>(`/users/${user.login}`)
+            .then(response => ({
+              ...response.data,
+              score: user.score // Add score from search result
+            }))
+            .catch(() => {
+              // Create a fallback user object that matches GitHubUser interface
+              const fallbackUser: GitHubUser = {
+                id: user.id,
+                login: user.login,
+                avatar_url: user.avatar_url,
+                html_url: user.html_url,
+                name: '',
+                company: '',
+                blog: '',
+                location: '',
+                email: '',
+                bio: '',
+                public_repos: 0,
+                public_gists: 0,
+                followers: 0,
+                following: 0,
+                created_at: new Date().toISOString(),
+                score: user.score // Add score from search result
+              };
+              return fallbackUser;
+            })
+        );
+        
+        const chunkResults = await Promise.all(detailsPromises);
+        users.push(...chunkResults);
+      }
 
-          return {
-            ...userDetails.data,
-            topLanguage,
-            score: user.score
-          };
-        } catch (error) {
-          console.error(`Error fetching details for user ${user.login}:`, error);
-          return {
-            login: user.login,
-            id: user.id,
-            avatar_url: user.avatar_url,
-            score: user.score
-          };
-        }
-      });
-
-      const users = await Promise.all(userDetailsPromises);
-
-      // Cache the result with timestamp
-      this.searchCache.set(cacheKey, {
+      const result = {
         items: users,
-        total_count: response.data.total_count,
+        total_count: searchData.total_count,
         timestamp: Date.now()
-      });
+      };
+
+      // Cache the results
+      localStorage.setItem(`github_search_${cacheKey}`, JSON.stringify(result));
 
       return {
         items: users,
-        total_count: response.data.total_count
+        total_count: searchData.total_count
       };
     } catch (error) {
-      console.error('Error searching GitHub users:', error);
+      console.error('Search failed:', error);
       throw error;
-    }
-  }
-
-  private async fetchUserTopLanguage(username: string): Promise<string | null> {
-    try {
-      const githubApi = axios.create({
-        baseURL: 'https://api.github.com',
-        headers: {
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-      const response = await githubApi.get(`/users/${username}/repos`, {
-        params: {
-          sort: 'updated',
-          per_page: 5
-        }
-      });
-
-      const languages = new Map<string, number>();
-      
-      for (const repo of response.data) {
-        if (repo.language) {
-          languages.set(repo.language, (languages.get(repo.language) || 0) + 1);
-        }
-      }
-
-      if (languages.size === 0) return null;
-
-      return Array.from(languages.entries())
-        .sort((a, b) => b[1] - a[1])[0][0];
-    } catch (error) {
-      console.error(`Error fetching top language for user ${username}:`, error);
-      return null;
     }
   }
 }

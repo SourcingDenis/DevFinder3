@@ -1,11 +1,10 @@
-import { useState, KeyboardEvent, FormEvent, ChangeEvent, useEffect } from 'react';
+import { useState, KeyboardEvent, ChangeEvent, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { LocationTags } from '@/components/search/LocationTags';
 import { Search } from 'lucide-react';
-import type { UserSearchParams } from '@/types';
 import { useSearchParams } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
+import type { UserSearchParams } from '@/types';
 
 interface SearchFormProps {
   onSearch: (params: Omit<UserSearchParams, 'page'>) => void;
@@ -20,83 +19,67 @@ export function SearchForm({ onSearch }: SearchFormProps) {
     searchParams.get('locations')?.split(',').filter(Boolean) || []
   );
 
-  // Use debounce to improve input responsiveness
-  const debouncedQuery = useDebounce(query, 300);
-  const debouncedLanguage = useDebounce(language, 300);
-  const debouncedLocations = useDebounce(locations, 300);
+  // Increase debounce delay to reduce API calls
+  const debouncedQuery = useDebounce(query, 500);
+  const debouncedLanguage = useDebounce(language, 500);
+  const debouncedLocations = useDebounce(locations, 500);
 
-  useEffect(() => {
-    const urlQuery = searchParams.get('query');
-    const urlLanguage = searchParams.get('language');
-    const urlLocations = searchParams.get('locations')?.split(',').filter(Boolean) || [];
-
-    if (urlQuery) setQuery(urlQuery);
-    if (urlLanguage) setLanguage(urlLanguage);
-    setLocations(urlLocations);
-
-    if (urlQuery) {
-      handleSearch(urlQuery, urlLanguage || '', urlLocations);
-    }
-  }, [searchParams]);
-
-  const handleLocationKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && locationInput.trim()) {
-      e.preventDefault();
-      const newLocation = locationInput.trim();
-      if (!locations.includes(newLocation)) {
-        const newLocations = [...locations, newLocation];
-        setLocations(newLocations);
-        setLocationInput('');
-      }
-    }
-  };
-
-  const handleRemoveLocation = (locationToRemove: string): void => {
-    const newLocations = locations.filter((loc: string): boolean => loc !== locationToRemove);
-    setLocations(newLocations);
-  };
-
-  const handleSearch = (
+  // Memoize search handler to prevent unnecessary re-renders
+  const handleSearch = useCallback((
     currentQuery: string,
     currentLanguage: string,
     currentLocations: string[]
   ): void => {
-    const searchParams: Partial<UserSearchParams> = {};
-    
-    if (currentQuery.trim()) {
-      searchParams.query = currentQuery.trim();
-    }
-    
-    if (currentLanguage) {
-      searchParams.language = currentLanguage;
-    }
-    
-    if (currentLocations.length > 0) {
-      searchParams.locations = currentLocations;
-    }
+    if (!currentQuery.trim()) return;
 
-    if (Object.keys(searchParams).length > 0) {
-      onSearch(searchParams as Omit<UserSearchParams, 'page'>);
-    }
-  };
+    const searchParams: Partial<UserSearchParams> = {
+      query: currentQuery.trim(),
+      ...(currentLanguage && { language: currentLanguage }),
+      ...(currentLocations.length > 0 && { locations: currentLocations })
+    };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
-    e.preventDefault();
-    handleSearch(debouncedQuery, debouncedLanguage, debouncedLocations);
-  };
+    onSearch(searchParams as Omit<UserSearchParams, 'page'>);
+  }, [onSearch]);
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.id === 'query') {
-      setQuery(e.target.value);
-    } else if (e.target.id === 'language') {
-      setLanguage(e.target.value);
-    } else if (e.target.id === 'location') {
-      setLocationInput(e.target.value);
+  // Auto-search when debounced values change
+  useEffect(() => {
+    if (debouncedQuery) {
+      handleSearch(debouncedQuery, debouncedLanguage, debouncedLocations);
     }
-  };
+  }, [debouncedQuery, debouncedLanguage, debouncedLocations, handleSearch]);
+
+  const handleLocationKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && locationInput.trim()) {
+      e.preventDefault();
+      const newLocation = locationInput.trim();
+      if (!locations.includes(newLocation)) {
+        setLocations(prev => [...prev, newLocation]);
+        setLocationInput('');
+      }
+    }
+  }, [locationInput, locations]);
+
+  const handleRemoveLocation = useCallback((locationToRemove: string): void => {
+    setLocations(prev => prev.filter(loc => loc !== locationToRemove));
+  }, []);
+
+  const handleInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    switch (id) {
+      case 'query':
+        setQuery(value);
+        break;
+      case 'language':
+        setLanguage(value);
+        break;
+      case 'location':
+        setLocationInput(value);
+        break;
+    }
+  }, []);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form className="space-y-4" onSubmit={e => e.preventDefault()}>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -130,9 +113,6 @@ export function SearchForm({ onSearch }: SearchFormProps) {
       {locations.length > 0 && (
         <LocationTags locations={locations} onRemove={handleRemoveLocation} />
       )}
-      <Button type="submit" className="w-full">
-        Search
-      </Button>
     </form>
   );
 }
