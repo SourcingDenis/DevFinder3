@@ -108,7 +108,7 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          {!user && <GitHubLoginButton variant="header" confetti={true} />}
+          {!user && <GitHubLoginButton />}
           <div className="hidden md:flex items-center gap-4">
             {user && (
               <Button
