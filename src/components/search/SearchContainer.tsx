@@ -137,16 +137,17 @@ export function SearchContainer({ onSearch }: { onSearch?: () => void }) {
   }, [user, state.searchName, state.searchParams]);
 
   const saveRecentSearch = useCallback(async (searchParams: UserSearchParams) => {
-    if (!user || !searchParams.query) return;
+    if (!user) return;
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('recent_searches')
         .insert({
-          user_id: user.id,
           query: searchParams.query,
           search_params: searchParams
         });
+
+      if (error) throw error;
     } catch (error) {
       console.error('Error saving recent search:', error);
     }

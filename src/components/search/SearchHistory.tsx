@@ -21,7 +21,7 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
     const fetchRecentSearches = async () => {
       const { data, error } = await supabase
         .from('recent_searches')
-        .select('id, query, search_params, created_at, updated_at')
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10);
