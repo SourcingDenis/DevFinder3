@@ -71,7 +71,7 @@ class AuthService {
         throw new Error('Failed to get session');
       }
 
-      if (!session?.session) {
+      if (!session?.user) {
         console.error('No active session found');
         throw new Error('No active session');
       }
@@ -113,7 +113,7 @@ class AuthService {
       const { data: storedTokens, error: tokensError } = await this.supabase
         .from('user_tokens')
         .select('access_token, refresh_token, expires_at')
-        .eq('user_id', session.session.user.id)
+        .eq('user_id', session.user.id)
         .eq('provider', 'github')
         .single();
 
