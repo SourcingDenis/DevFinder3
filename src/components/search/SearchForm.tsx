@@ -101,37 +101,37 @@ export function SearchForm({ onSearch }: SearchFormProps) {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           id="query"
-          placeholder="Search GitHub users..."
+          type="text"
+          placeholder="Search developers..."
           value={query}
           onChange={handleInputChange}
-          className="pl-10 h-12"
+          className="pl-10"
         />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="flex flex-wrap gap-4">
         <Input
           id="language"
-          placeholder="Programming language"
+          type="text"
+          placeholder="Programming language..."
           value={language}
           onChange={handleInputChange}
-          className="h-10"
+          className="flex-1"
         />
-        <div className="space-y-2">
-          <Input
-            id="location"
-            placeholder="Location (press Enter to add)"
-            value={locationInput}
-            onChange={handleInputChange}
-            onKeyDown={handleLocationKeyDown}
-            className="h-10"
-          />
-          <LocationTags
-            locations={locations}
-            onRemove={handleRemoveLocation}
-          />
-        </div>
+        <Input
+          id="location"
+          type="text"
+          placeholder="Add location..."
+          value={locationInput}
+          onChange={handleInputChange}
+          onKeyDown={handleLocationKeyDown}
+          className="flex-1"
+        />
       </div>
-      <Button type="submit" className="w-full h-10">
-        Search Users
+      {locations.length > 0 && (
+        <LocationTags locations={locations} onRemove={handleRemoveLocation} />
+      )}
+      <Button type="submit" className="w-full">
+        Search
       </Button>
     </form>
   );

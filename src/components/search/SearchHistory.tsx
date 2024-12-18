@@ -8,7 +8,7 @@ import { Clock, Search, ArrowRight } from 'lucide-react';
 import type { UserSearchParams } from '@/types';
 
 interface SearchHistoryProps {
-  onSearch?: () => void;
+  onSearch?: (params: Partial<UserSearchParams>) => void;
 }
 
 interface RecentSearch {
@@ -76,8 +76,8 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
   }, [user]);
 
   const handleExecuteSearch = (searchParams: Omit<UserSearchParams, 'page'>) => {
-    // First trigger the onSearch callback to reset the state
-    onSearch?.();
+    // First trigger the onSearch callback with the search parameters
+    onSearch?.(searchParams);
 
     // Construct a comprehensive query
     let fullQuery = searchParams.query || '';

@@ -8,13 +8,10 @@ import { SaveProfileButton } from './SaveProfileButton';
 import { UserStats } from './UserStats';
 import { UserInfo } from './UserInfo';
 import { 
-  Mail, 
-  ExternalLink,
-  Copy,
-  X,
-  Code2,
-  Calendar,
-  AlertCircle
+  Mail,
+  Link as LinkIcon,
+  Loader2,
+  Calendar
 } from 'lucide-react';
 import { findUserEmail } from '@/lib/github-api';
 import { toast } from 'sonner';
@@ -28,6 +25,12 @@ import {
 // Extend GitHubUser interface to include source and confidence
 interface ExtendedGitHubUser extends GitHubUser {
   source?: string | null;
+  confidence?: number;
+}
+
+interface EmailResult {
+  email: string | null;
+  source: string | null;
   confidence?: number;
 }
 
@@ -53,11 +56,7 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
 }, ref) => {
   const [isEmailLoading, setIsEmailLoading] = React.useState(false);
   const [showEmailInput, setShowEmailInput] = React.useState(false);
-  const [userEmail, setUserEmail] = React.useState<{
-    email: string | null;
-    source: string | null;
-    confidence?: number;
-  }>({
+  const [userEmail, setUserEmail] = React.useState<EmailResult>({
     email: user.email || null,
     source: user.source || null,
     confidence: user.confidence
@@ -111,29 +110,29 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
   const getEmailSourceBadge = () => {
     if (!userEmail.source) return null;
 
-    const sourceColors = {
+    const sourceColors: Record<string, string> = {
       'github_profile': 'bg-green-500',
       'public_events_commit': 'bg-blue-500',
       'manual_input': 'bg-yellow-500'
     };
 
-    const sourceLabels = {
+    const sourceLabels: Record<string, string> = {
       'github_profile': 'GitHub Profile',
       'public_events_commit': 'Commit History',
       'manual_input': 'Manual Input'
     };
+
+    const sourceColor = sourceColors[userEmail.source] || 'bg-gray-500';
+    const sourceLabel = sourceLabels[userEmail.source] || userEmail.source;
 
     return (
       <Tooltip>
         <TooltipTrigger>
           <Badge 
             variant="secondary" 
-            className={cn(
-              "ml-2 cursor-help",
-              sourceColors[userEmail.source as keyof typeof sourceColors]
-            )}
+            className={cn("ml-2 cursor-help", sourceColor)}
           >
-            {sourceLabels[userEmail.source as keyof typeof sourceLabels]}
+            {sourceLabel}
             {userEmail.confidence !== undefined && (
               <span className="ml-1 opacity-75">
                 {Math.round(userEmail.confidence * 100)}%
@@ -142,7 +141,15 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
           </Badge>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Email confidence score based on source reliability</p>
+          <div className="text-sm">
+            <p className="font-medium">{userEmail.email}</p>
+            <p className="text-xs text-muted-foreground">
+              Source: {userEmail.source}
+              {userEmail.confidence !== undefined && 
+                ` (${Math.round(userEmail.confidence * 100)}% confidence)`
+              }
+            </p>
+          </div>
         </TooltipContent>
       </Tooltip>
     );
@@ -161,7 +168,7 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
               className="absolute right-0 top-0 h-8 w-8 sm:hidden hover:bg-destructive/10 hover:text-destructive"
               onClick={() => onRemove?.(user.login)}
             >
-              <X className="h-4 w-4" />
+              <Loader2 className="h-4 w-4" />
             </Button>
           )}
           <div className="flex gap-6 relative">
@@ -176,7 +183,7 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
                 className="h-8 w-8"
               >
                 {isEmailLoading ? (
-                  <span className="loading-spinner h-4 w-4" />
+                  <Loader2 className="h-4 w-4" />
                 ) : (
                   <Mail className="h-4 w-4" />
                 )}
@@ -219,7 +226,7 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
                 )}
                 {user.topLanguage && (
                   <Badge variant="secondary" className="bg-violet-100 text-violet-800">
-                    <Code2 className="h-3 w-3 mr-1" />
+                    <LinkIcon className="h-3 w-3 mr-1" />
                     {user.topLanguage}
                   </Badge>
                 )}
@@ -234,7 +241,7 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
                   className="hover:text-primary flex items-center gap-1"
                 >
                   @{user.login}
-                  <ExternalLink className="h-3 w-3" />
+                  <LinkIcon className="h-3 w-3" />
                 </a>
                 {user.created_at && (
                   <span className="flex items-center gap-1">
@@ -256,7 +263,7 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
                         toast.success('Email copied to clipboard');
                       }}
                     >
-                      <Copy className="h-4 w-4" />
+                      <LinkIcon className="h-4 w-4" />
                     </Button>
                   </div>
                 )}

@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { UserSearchParams, GitHubUser, SearchResponse } from '@/types';
-import { supabase } from './supabase';
+import { authService } from './auth-service';
 
 // Type guard for error objects
 function isErrorWithMessage(error: unknown): error is Error {
@@ -21,34 +21,46 @@ function isAxiosError(error: unknown): error is AxiosError {
   );
 }
 
+const GITHUB_API_BASE = 'https://api.github.com';
+
+// Cache for rate limit info
+let rateLimitCache = {
+  remaining: 60,
+  reset: 0,
+  lastChecked: 0
+};
+
+// Implement request queue to handle rate limiting
+const requestQueue: Array<() => Promise<any>> = [];
+let isProcessingQueue = false;
+
+async function processQueue() {
+  if (isProcessingQueue || requestQueue.length === 0) return;
+  
+  isProcessingQueue = true;
+  while (requestQueue.length > 0) {
+    const request = requestQueue.shift();
+    if (request) {
+      try {
+        await request();
+      } catch (error) {
+        console.error('Error processing queued request:', error);
+      }
+    }
+    // Add small delay between requests
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  isProcessingQueue = false;
+}
+
 const getGithubApi = async () => {
   try {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      throw new Error('Failed to get session');
-    }
-
-    if (!session) {
-      throw new Error('No active session');
-    }
-
-    if (!session.provider_token) {
-      // Attempt to refresh the session
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      
-      if (refreshError || !refreshData.session?.provider_token) {
-        throw new Error('Failed to refresh GitHub authentication token');
-      }
-
-      // Update session with new token
-      session.provider_token = refreshData.session.provider_token;
-    }
+    const token = await authService.getValidToken();
 
     const api = axios.create({
-      baseURL: 'https://api.github.com',
+      baseURL: GITHUB_API_BASE,
       headers: {
-        Authorization: `Bearer ${session.provider_token}`,
+        Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github.v3+json',
         'X-GitHub-Api-Version': '2022-11-28'
       }
@@ -56,7 +68,19 @@ const getGithubApi = async () => {
 
     // Add response interceptor for automatic token refresh
     api.interceptors.response.use(
-      response => response,
+      response => {
+        // Update rate limit info
+        const remaining = response.headers['x-ratelimit-remaining'];
+        const reset = response.headers['x-ratelimit-reset'];
+        if (remaining && reset) {
+          rateLimitCache = {
+            remaining: parseInt(remaining),
+            reset: parseInt(reset) * 1000, // Convert to milliseconds
+            lastChecked: Date.now()
+          };
+        }
+        return response;
+      },
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
@@ -64,38 +88,34 @@ const getGithubApi = async () => {
           originalRequest._retry = true;
 
           try {
-            // Attempt to refresh the session
-            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-            
-            if (refreshError || !refreshData.session?.provider_token) {
-              throw new Error('Failed to refresh authentication');
-            }
-
-            // Update the authorization header with new token
-            if (originalRequest.headers) {
-              originalRequest.headers['Authorization'] = `Bearer ${refreshData.session.provider_token}`;
-            }
-            
+            const token = await authService.getValidToken();
+            originalRequest.headers = {
+              ...originalRequest.headers,
+              Authorization: `Bearer ${token}`
+            };
             return axios(originalRequest);
           } catch (refreshError) {
-            console.error('Failed to refresh token:', refreshError);
-            // Only sign out if refresh token is expired
-            if (isAxiosError(refreshError) && refreshError.response?.status === 401) {
-              await supabase.auth.signOut();
-              window.location.href = '/';
-            }
-            return Promise.reject(refreshError);
+            // Token refresh failed, throw error to be handled by the component
+            throw new Error('Authentication failed. Please sign in again.');
           }
         }
 
-        return Promise.reject(error);
+        // Handle rate limit errors
+        if (error.response?.status === 403 && error.response.headers['x-ratelimit-remaining'] === '0') {
+          const resetTime = new Date(parseInt(error.response.headers['x-ratelimit-reset']) * 1000);
+          throw new Error(`GitHub API rate limit exceeded. Reset at ${resetTime.toLocaleTimeString()}`);
+        }
+
+        throw error;
       }
     );
 
     return api;
   } catch (error) {
-    console.error('Error creating GitHub API client:', error);
-    throw error;
+    if (error instanceof Error) {
+      throw new Error(`GitHub API initialization failed: ${error.message}`);
+    }
+    throw new Error('GitHub API initialization failed');
   }
 };
 
@@ -116,6 +136,20 @@ interface StoredEmail {
   updated_at: string;
 }
 
+interface GitHubEvent {
+  payload?: {
+    commits?: Array<{
+      author?: {
+        email?: string;
+      };
+    }>;
+  };
+}
+
+interface EmailFrequency {
+  [email: string]: number;
+}
+
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // ms
 
@@ -124,150 +158,110 @@ async function sleep(ms: number): Promise<void> {
 }
 
 export async function searchUsers(params: UserSearchParams): Promise<SearchResponse<GitHubUser>> {
-  try {
-    const githubApi = await getGithubApi();
-    
-    // Construct the search query
-    let q = params.query || '';
-    
-    // Add language filter if specified
-    if (params.language) {
-      q += ` language:${params.language}`;
-    }
+  const searchParams = new URLSearchParams();
+  let queryString = params.query;
 
-    // Add location filters if specified
-    if (params.locations && params.locations.length > 0) {
-      q += ` ${params.locations.map(loc => `location:${loc}`).join(' ')}`;
-    }
-
-    // Add followers range if specified
-    if (params.followersMin) {
-      q += ` followers:>=${params.followersMin}`;
-    }
-    if (params.followersMax) {
-      q += ` followers:<=${params.followersMax}`;
-    }
-
-    // Add repositories range if specified
-    if (params.reposMin) {
-      q += ` repos:>=${params.reposMin}`;
-    }
-    if (params.reposMax) {
-      q += ` repos:<=${params.reposMax}`;
-    }
-
-    // Add hireable filter
-    if (params.hireable) {
-      q += ' is:hireable';
-    }
-
-    try {
-      const response = await githubApi.get('/search/users', {
-        params: {
-          q,
-          sort: params.sort || 'best-match',
-          order: params.order || 'desc',
-          per_page: params.per_page || 30,
-          page: params.page || 1
-        }
-      });
-
-      // Fetch detailed information for each user
-      const users = await Promise.all(
-        response.data.items.map(async (user: any) => {
-          try {
-            // Fetch detailed user info
-            const userDetailsResponse = await githubApi.get(`/users/${user.login}`);
-            const userDetails = userDetailsResponse.data;
-
-            // Fetch user's top language
-            const topLanguage = await fetchUserTopLanguage(user.login);
-            
-            // Fetch user's email
-            const { email, source } = await findUserEmail(user.login);
-            
-            return {
-              ...userDetails,
-              topLanguage,
-              email,
-              source,
-              score: user.score
-            };
-          } catch (error) {
-            console.error(`Error fetching details for user ${user.login}:`, error);
-            return {
-              login: user.login,
-              id: user.id,
-              avatar_url: user.avatar_url,
-              score: user.score
-            };
-          }
-        })
-      );
-
-      // Check for rate limit headers
-      const rateLimitRemaining = response.headers['x-ratelimit-remaining'];
-      const rateLimitReset = response.headers['x-ratelimit-reset'];
-
-      if (rateLimitRemaining && Number(rateLimitRemaining) < 10) {
-        console.warn(`GitHub API rate limit is low. Remaining: ${rateLimitRemaining}. Resets at: ${new Date(Number(rateLimitReset) * 1000)}`);
-      }
-
-      return {
-        items: users,
-        total_count: response.data.total_count,
-        incomplete_results: response.data.incomplete_results
-      };
-    } catch (apiError) {
-      // Type-safe error handling
-      if (isAxiosError(apiError)) {
-        if (apiError.response) {
-          console.error('GitHub API Error:', {
-            status: apiError.response.status,
-            data: apiError.response.data,
-            headers: apiError.response.headers
-          });
-
-          switch (apiError.response.status) {
-            case 403:
-              throw new Error('GitHub API rate limit exceeded. Please try again later.');
-            case 422:
-              throw new Error('Invalid search query. Please check your search parameters.');
-            case 503:
-              throw new Error('GitHub service is temporarily unavailable. Please try again later.');
-            default:
-              throw new Error(`GitHub API request failed: ${apiError.message}`);
-          }
-        } else if (apiError.request) {
-          console.error('No response received:', apiError.request);
-          throw new Error('No response from GitHub. Check your internet connection.');
-        }
-      }
-
-      // Fallback for any other unexpected errors
-      const errorMessage = isErrorWithMessage(apiError) 
-        ? apiError.message 
-        : 'Unexpected error setting up GitHub API request';
-      
-      console.error('Error setting up GitHub API request:', errorMessage);
-      throw new Error(errorMessage);
-    }
-  } catch (error) {
-    const errorMessage = isErrorWithMessage(error) 
-      ? error.message 
-      : 'Unexpected error in searchUsers';
-    
-    console.error('Unexpected error in searchUsers:', errorMessage);
-    throw new Error(errorMessage);
+  // Optimize query string construction
+  if (params.language) {
+    queryString += ` language:${params.language}`;
   }
+  if (params.locations?.length) {
+    queryString += ` ${params.locations.map(loc => `location:${loc}`).join(' ')}`;
+  }
+  if (params.hireable) {
+    queryString += ' is:hireable';
+  }
+
+  searchParams.set('q', queryString.trim());
+  if (params.sort) searchParams.set('sort', params.sort);
+  if (params.order) searchParams.set('order', params.order);
+  if (params.per_page) searchParams.set('per_page', params.per_page.toString());
+  if (params.page) searchParams.set('page', params.page.toString());
+
+  // Check rate limit before making request
+  if (rateLimitCache.remaining <= 0) {
+    const now = Date.now() / 1000;
+    if (now < rateLimitCache.reset) {
+      const waitTime = (rateLimitCache.reset - now) * 1000;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    const request = async () => {
+      try {
+        const githubApi = await getGithubApi();
+        const response = await githubApi.get('/search/users', {
+          params: searchParams
+        });
+
+        // Update rate limit info
+        rateLimitCache = {
+          remaining: Number(response.headers['x-ratelimit-remaining']) || 0,
+          reset: Number(response.headers['x-ratelimit-reset']) || 0,
+          lastChecked: Date.now()
+        };
+
+        if (response.status !== 200) {
+          throw new Error(`GitHub API error: ${response.status}`);
+        }
+
+        const data = response.data;
+
+        // Fetch detailed information for each user
+        const users = await Promise.all(
+          data.items.map(async (user: any) => {
+            try {
+              // Fetch detailed user info
+              const userDetailsResponse = await githubApi.get(`/users/${user.login}`);
+              const userDetails = userDetailsResponse.data;
+
+              // Fetch user's top language
+              const topLanguage = await fetchUserTopLanguage(user.login);
+              
+              // Fetch user's email
+              const { email, source } = await findUserEmail(user.login);
+              
+              return {
+                ...userDetails,
+                topLanguage,
+                email,
+                source,
+                score: user.score
+              };
+            } catch (error) {
+              console.error(`Error fetching details for user ${user.login}:`, error);
+              return {
+                login: user.login,
+                id: user.id,
+                avatar_url: user.avatar_url,
+                score: user.score
+              };
+            }
+          })
+        );
+
+        resolve({
+          items: users,
+          total_count: data.total_count,
+          incomplete_results: data.incomplete_results
+        });
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    requestQueue.push(request);
+    processQueue();
+  });
 }
 
-export async function findUserEmail(username: string): Promise<{ email: string | null; source: string | null }> {
+export async function findUserEmail(username: string): Promise<EmailResult> {
   try {
     // First, check if we have a stored email for this user
-    const { data: storedEmails } = await supabase
+    const { data: storedEmails } = await authService.supabase
       .from('enriched_emails')
-      .select('email, source')
+      .select('email, source, confidence')
       .eq('github_username', username)
       .order('created_at', { ascending: false })
       .limit(1);
@@ -275,7 +269,8 @@ export async function findUserEmail(username: string): Promise<{ email: string |
     if (storedEmails && storedEmails.length > 0) {
       return {
         email: storedEmails[0].email,
-        source: storedEmails[0].source
+        source: storedEmails[0].source,
+        confidence: storedEmails[0].confidence
       };
     }
 
@@ -296,26 +291,28 @@ export async function findUserEmail(username: string): Promise<{ email: string |
       
       // Check public events
       githubApi.get(`/users/${username}/events/public`).then(response => {
-        const commits = response.data
-          .filter(event => event.payload?.commits)
-          .flatMap(event => event.payload.commits)
-          .filter(commit => commit?.author?.email);
+        const commits = (response.data as GitHubEvent[])
+          .filter((event: GitHubEvent) => event.payload?.commits)
+          .flatMap((event: GitHubEvent) => event.payload?.commits || [])
+          .filter((commit) => commit?.author?.email);
 
-        const emailFrequency = commits.reduce((acc: Record<string, number>, commit: any) => {
-          const email = commit.author.email;
-          if (!email.includes('noreply.github.com')) {
+        const emailFrequency = commits.reduce<EmailFrequency>((acc, commit) => {
+          const email = commit.author?.email;
+          if (email && !email.includes('noreply.github.com')) {
             acc[email] = (acc[email] || 0) + 1;
           }
           return acc;
         }, {});
 
-        const [mostFrequentEmail] = Object.entries(emailFrequency)
-          .sort(([, a], [, b]) => b - a);
+        const entries = Object.entries(emailFrequency);
+        const [mostFrequentEmail] = entries.length > 0 
+          ? entries.sort(([, a], [, b]) => b - a)
+          : [null];
 
         return mostFrequentEmail ? {
           email: mostFrequentEmail[0],
           source: 'public_events_commit',
-          confidence: mostFrequentEmail[1] / commits.length
+          confidence: commits.length > 0 ? mostFrequentEmail[1] / commits.length : 0
         } : {
           email: null,
           source: null,
@@ -334,40 +331,20 @@ export async function findUserEmail(username: string): Promise<{ email: string |
     // Sort by confidence and pick the best result
     const bestResult = results
       .filter(result => result.email !== null)
-      .sort((a, b) => b.confidence - a.confidence)[0];
-
-    if (bestResult?.email) {
-      // Store the found email
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (currentUser?.id) {
-        await supabase.from('enriched_emails').insert({
-          github_username: username,
-          email: bestResult.email,
-          source: bestResult.source,
-          enriched_by: currentUser.id,
-          confidence: bestResult.confidence
-        });
-      }
-
-      return {
-        email: bestResult.email,
-        source: bestResult.source
+      .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))[0] || {
+        email: null,
+        source: null,
+        confidence: 0
       };
-    }
 
-    return { email: null, source: null };
+    return bestResult;
   } catch (error) {
-    const errorMessage = isErrorWithMessage(error) 
-      ? error.message 
-      : 'Unexpected error in findUserEmail';
-    
-    console.error('Unexpected error in findUserEmail:', {
-      username,
-      error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined
-    });
-    
-    throw new Error(errorMessage);
+    console.error('Error in findUserEmail:', error);
+    return {
+      email: null,
+      source: null,
+      confidence: 0
+    };
   }
 }
 
@@ -457,13 +434,13 @@ export async function storeUserEmail(
       }
 
       // Start transaction
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data: { user: currentUser } } = await authService.supabase.auth.getUser();
       if (!currentUser?.id) {
         throw new Error('User must be authenticated to store emails');
       }
 
       // Fetch existing record with FOR UPDATE lock
-      const { data: existingEmails, error: selectError } = await supabase
+      const { data: existingEmails, error: selectError } = await authService.supabase
         .from('enriched_emails')
         .select('*')
         .eq('github_username', username)
@@ -480,7 +457,7 @@ export async function storeUserEmail(
       if (existingEmail) {
         // Only update if new email has higher confidence or is more recent
         if (confidence > (existingEmail.confidence || 0)) {
-          const { error: updateError } = await supabase
+          const { error: updateError } = await authService.supabase
             .from('enriched_emails')
             .update({ 
               email,
@@ -502,7 +479,7 @@ export async function storeUserEmail(
         }
       } else {
         // Insert new record
-        const { error: insertError } = await supabase
+        const { error: insertError } = await authService.supabase
           .from('enriched_emails')
           .insert({ 
             github_username: username,
