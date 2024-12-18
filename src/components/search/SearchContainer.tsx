@@ -17,6 +17,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchState } from '@/hooks/useSearchState';
 import { toast } from 'react-toastify';
 import type { SortOption } from '@/components/search/SortSelect';
+import { supabase } from '@/lib/supabase'; // Assuming supabase is imported from somewhere
 
 const RESULTS_PER_PAGE = 30;
 const PREFETCH_THRESHOLD = 0.8;
@@ -102,10 +103,64 @@ export function SearchContainer({ onSearch }: { onSearch?: () => void }) {
     }
   }, [data, prefetchNextPage]);
 
+  const handleSaveSearch = useCallback(async () => {
+    if (!user || !state.searchName.trim() || !state.searchParams.query) {
+      toast.error('Please provide a name for your search');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('saved_searches')
+        .insert({
+          user_id: user.id,
+          name: state.searchName.trim(),
+          search_params: state.searchParams
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          toast.error('A search with this name already exists');
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success('Search saved successfully');
+        dispatch({ type: 'SET_SAVE_DIALOG', payload: false });
+        dispatch({ type: 'SET_SEARCH_NAME', payload: '' });
+      }
+    } catch (error) {
+      console.error('Error saving search:', error);
+      toast.error('Failed to save search');
+    }
+  }, [user, state.searchName, state.searchParams]);
+
+  const saveRecentSearch = useCallback(async (searchParams: UserSearchParams) => {
+    if (!user || !searchParams.query) return;
+
+    try {
+      await supabase
+        .from('recent_searches')
+        .insert({
+          user_id: user.id,
+          query: searchParams.query,
+          search_params: searchParams
+        });
+    } catch (error) {
+      console.error('Error saving recent search:', error);
+    }
+  }, [user]);
+
   const handleSearch = useCallback((params: Partial<typeof state.searchParams>) => {
-    updateSearchParams(params);
+    const updatedParams = {
+      ...state.searchParams,
+      ...params,
+      page: 1 // Reset page when performing new search
+    };
+    updateSearchParams(updatedParams);
+    saveRecentSearch(updatedParams);
     onSearch?.();
-  }, [updateSearchParams, onSearch]);
+  }, [updateSearchParams, onSearch, saveRecentSearch, state.searchParams]);
 
   const handlePageChange = useCallback((page: number) => {
     setPage(page);
@@ -115,10 +170,6 @@ export function SearchContainer({ onSearch }: { onSearch?: () => void }) {
   const handleSortChange = useCallback((sort: SortOption) => {
     setSort(sort);
   }, [setSort]);
-
-  const handleSaveSearch = useCallback(async () => {
-    // Implementation for saving search...
-  }, [state.searchName, state.searchParams]);
 
   const renderContent = useMemo(() => {
     if (!user) return <SignInPrompt />;

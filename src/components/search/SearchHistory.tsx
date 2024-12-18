@@ -79,17 +79,11 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
     // First trigger the onSearch callback with the search parameters
     onSearch?.(searchParams);
 
-    // Construct a comprehensive query
-    let fullQuery = searchParams.query || '';
-    if (searchParams.language) {
-      fullQuery += ` language:${searchParams.language}`;
-    }
-
     // Prepare URL search parameters
     const params = new URLSearchParams();
     
-    // Set query with language
-    params.set('query', fullQuery.trim());
+    // Set query
+    params.set('query', searchParams.query || '');
     
     // Add other search parameters
     if (searchParams.language) params.set('language', searchParams.language);
@@ -99,8 +93,8 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
     if (searchParams.per_page) params.set('per_page', String(searchParams.per_page));
     if (searchParams.hireable !== undefined) params.set('hireable', String(searchParams.hireable));
 
-    // Navigate to search page with full query parameters
-    window.location.href = `/search?${params.toString()}`;
+    // Update URL without reloading the page
+    window.history.pushState({}, '', `/search?${params.toString()}`);
   };
 
   if (!user || recentSearches.length === 0) return null;
