@@ -26,6 +26,7 @@ import {
 interface ExtendedGitHubUser extends GitHubUser {
   source?: string | null;
   confidence?: number;
+  isEmailRequested?: boolean;
 }
 
 interface EmailResult {
@@ -41,6 +42,7 @@ type UserCardBaseProps = {
   className?: string;
   listName?: string;
   isSaved?: boolean;
+  onEmailRequest?: (username: string) => void;
 };
 
 type UserCardProps = UserCardBaseProps & React.ComponentProps<typeof Card>;
@@ -52,6 +54,7 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
   className = '', 
   listName,
   isSaved = false,
+  onEmailRequest,
   ...props 
 }, ref) => {
   const [isEmailLoading, setIsEmailLoading] = React.useState(false);
@@ -62,25 +65,12 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
     confidence: user.confidence
   });
 
-  // Check for stored email on component mount
-  React.useEffect(() => {
-    const checkStoredEmail = async () => {
-      if (userEmail.email) return; // Skip if we already have an email
-      
-      try {
-        const result = await findUserEmail(user.login);
-        if (result.email) {
-          setUserEmail(result);
-        }
-      } catch (error) {
-        console.error('Error checking stored email:', error);
-      }
-    };
-    
-    checkStoredEmail();
-  }, [user.login, userEmail.email]);
-
   const handleFindEmail = async () => {
+    if (!user.isEmailRequested) {
+      onEmailRequest?.(user.login);
+      return;
+    }
+
     setIsEmailLoading(true);
     try {
       const result = await findUserEmail(user.login);
@@ -90,13 +80,18 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
           description: `Source: ${result.source}${result.confidence ? ` (${Math.round(result.confidence * 100)}% confidence)` : ''}`
         });
       } else {
-        // No email found, show input
         setShowEmailInput(true);
       }
     } catch (error) {
-      toast.error('Error finding email', {
-        description: error instanceof Error ? error.message : 'Unknown error'
-      });
+      if (error instanceof Error && error.message.includes('Authentication failed')) {
+        toast.error('Authentication required', {
+          description: 'Please sign in to find user emails'
+        });
+      } else {
+        toast.error('Error finding email', {
+          description: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     } finally {
       setIsEmailLoading(false);
     }
