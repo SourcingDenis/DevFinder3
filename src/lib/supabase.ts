@@ -15,6 +15,12 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     flowType: 'pkce',
     storage: localStorage,
-    storageKey: 'devfinder-auth'
+    storageKey: 'devfinder-auth',
+    debug: true // This will help us see what's happening
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'devfinder'
+    }
   }
 });
