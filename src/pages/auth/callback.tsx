@@ -13,20 +13,29 @@ export function AuthCallback() {
         
         if (sessionError) {
           console.error('Session error:', sessionError);
-          throw sessionError;
+          navigate('/', { replace: true });
+          return;
         }
 
-        if (!session?.provider_token) {
-          console.error('No provider token found in session');
-          throw new Error('Authentication failed: No provider token');
+        if (!session) {
+          console.error('No session found');
+          navigate('/', { replace: true });
+          return;
         }
+
+        console.log('Session obtained:', {
+          user: session.user?.id,
+          expires_at: session.expires_at,
+          provider_token: !!session.provider_token,
+          access_token: !!session.access_token
+        });
 
         // Redirect to home page after successful authentication
         navigate('/home', { replace: true });
       } catch (error) {
         console.error('Auth callback error:', error);
-        // Redirect to home page even on error
-        navigate('/home', { replace: true });
+        // Redirect to login page on error
+        navigate('/', { replace: true });
       }
     };
 
