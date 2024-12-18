@@ -13,6 +13,7 @@ import { AuthCallback } from '@/pages/auth/callback';
 import { ProductRoadmap } from '@/pages/ProductRoadmap';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { ReactNode } from 'react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 // RequireAuth component to wrap routes that require authentication
 const RequireAuth = ({ children }: { children: ReactNode }) => {
@@ -90,8 +91,10 @@ const App = memo(() => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
-        <Toaster />
+        <TooltipProvider>
+          <AppContent />
+          <Toaster />
+        </TooltipProvider>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -61,17 +61,18 @@ class AuthService {
     }
 
     this.isRefreshing = true;
-    let refreshError: Error | undefined;
 
     try {
       // First try to get the current session
       const { data: session, error: sessionError } = await this.supabase.auth.getSession();
       
       if (sessionError) {
+        console.error('Session error:', sessionError);
         throw new Error('Failed to get session');
       }
 
       if (!session?.session) {
+        console.error('No active session found');
         throw new Error('No active session');
       }
 
@@ -99,29 +100,43 @@ class AuthService {
         .single();
 
       if (tokensError || !storedTokens?.access_token) {
+        console.error('Token retrieval error:', tokensError);
         throw new Error('No valid tokens found');
+      }
+
+      // Check if stored token is expired
+      const expiresAt = storedTokens.expires_at ? new Date(storedTokens.expires_at).getTime() : null;
+      if (expiresAt && Date.now() >= expiresAt) {
+        console.error('Stored token is expired');
+        throw new Error('Token expired');
       }
 
       // Update token state with stored tokens
       this.tokenState = {
         provider_token: storedTokens.access_token,
         refresh_token: storedTokens.refresh_token,
-        expiresAt: storedTokens.expires_at ? new Date(storedTokens.expires_at).getTime() : null,
+        expiresAt,
       };
 
       this.onTokenRefreshed({ token: storedTokens.access_token });
       return storedTokens.access_token;
+
     } catch (error) {
-      refreshError = error instanceof Error ? error : new Error('Unknown error during token refresh');
-      this.onTokenRefreshed({ token: '', error: refreshError });
+      const isExpiredError = error instanceof Error && 
+        (error.message.includes('expired') || error.message.includes('No valid tokens'));
       
-      // Show user-friendly error message
-      toast.error('Your session has expired. Please sign in again.');
+      if (isExpiredError) {
+        // Only sign out if the token is actually expired
+        console.error('Token expired, signing out:', error);
+        toast.error('Your session has expired. Please sign in again.');
+        await this.supabase.auth.signOut();
+      } else {
+        // For other errors, just show an error message
+        console.error('Token refresh error:', error);
+        toast.error('There was a problem refreshing your session. Please try again.');
+      }
       
-      // Sign out user on refresh failure
-      await this.supabase.auth.signOut();
-      
-      throw refreshError;
+      throw error;
     } finally {
       this.isRefreshing = false;
     }
