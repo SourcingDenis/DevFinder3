@@ -4,6 +4,7 @@ import { LocationTags } from '@/components/search/LocationTags';
 import { Search } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
+import { Button } from '@/components/ui/button';
 import type { UserSearchParams } from '@/types';
 
 interface SearchFormProps {
@@ -19,34 +20,17 @@ export function SearchForm({ onSearch }: SearchFormProps) {
     searchParams.get('locations')?.split(',').filter(Boolean) || []
   );
 
-  // Increase debounce delay to reduce API calls
-  const debouncedQuery = useDebounce(query, 500);
-  const debouncedLanguage = useDebounce(language, 500);
-  const debouncedLocations = useDebounce(locations, 500);
-
-  // Memoize search handler to prevent unnecessary re-renders
-  const handleSearch = useCallback((
-    currentQuery: string,
-    currentLanguage: string,
-    currentLocations: string[]
-  ): void => {
-    if (!currentQuery.trim()) return;
+  const handleSearch = useCallback((): void => {
+    if (!query.trim()) return;
 
     const searchParams: Partial<UserSearchParams> = {
-      query: currentQuery.trim(),
-      ...(currentLanguage && { language: currentLanguage }),
-      ...(currentLocations.length > 0 && { locations: currentLocations })
+      query: query.trim(),
+      ...(language && { language }),
+      ...(locations.length > 0 && { locations })
     };
 
     onSearch(searchParams as Omit<UserSearchParams, 'page'>);
-  }, [onSearch]);
-
-  // Auto-search when debounced values change
-  useEffect(() => {
-    if (debouncedQuery) {
-      handleSearch(debouncedQuery, debouncedLanguage, debouncedLocations);
-    }
-  }, [debouncedQuery, debouncedLanguage, debouncedLocations, handleSearch]);
+  }, [query, language, locations, onSearch]);
 
   const handleLocationKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && locationInput.trim()) {
@@ -113,6 +97,14 @@ export function SearchForm({ onSearch }: SearchFormProps) {
       {locations.length > 0 && (
         <LocationTags locations={locations} onRemove={handleRemoveLocation} />
       )}
+      <Button 
+        type="button" 
+        onClick={handleSearch}
+        className="w-full"
+        disabled={!query.trim()}
+      >
+        Search Developers
+      </Button>
     </form>
   );
 }
