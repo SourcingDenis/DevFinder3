@@ -23,29 +23,6 @@ function isAxiosError(error: unknown): error is AxiosError {
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
-// Implement request queue to handle rate limiting
-const requestQueue: Array<() => Promise<any>> = [];
-let isProcessingQueue = false;
-
-async function processQueue() {
-  if (isProcessingQueue || requestQueue.length === 0) return;
-  
-  isProcessingQueue = true;
-  while (requestQueue.length > 0) {
-    const request = requestQueue.shift();
-    if (request) {
-      try {
-        await request();
-      } catch (error) {
-        console.error('Error processing queued request:', error);
-      }
-    }
-    // Add small delay between requests
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
-  isProcessingQueue = false;
-}
-
 const getGithubApi = async () => {
   try {
     const token = await authService.getValidToken();
