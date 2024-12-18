@@ -15,9 +15,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      console.log('Initial session:', { userId: initialSession?.user?.id });
-      setUser(initialSession?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
       setLoading(false);
     });
 
@@ -25,21 +24,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user?.id !== user?.id) {
-        console.log('Auth state changed:', { 
-          event: _event, 
-          userId: session?.user?.id,
-          previousUserId: user?.id 
-        });
-        setUser(session?.user ?? null);
-      }
+      setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [user?.id]); // Only re-run if user ID changes
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
