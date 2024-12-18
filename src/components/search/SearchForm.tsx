@@ -1,10 +1,9 @@
-import { useState, KeyboardEvent, ChangeEvent, useEffect, useCallback } from 'react';
+import { useState, KeyboardEvent, ChangeEvent, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { LocationTags } from '@/components/search/LocationTags';
 import { Search } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { useDebounce } from '@/hooks/useDebounce';
-import { Button } from '@/components/ui/button';
 import type { UserSearchParams } from '@/types';
 
 interface SearchFormProps {

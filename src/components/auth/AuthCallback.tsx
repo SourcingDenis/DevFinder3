@@ -69,7 +69,7 @@ export function AuthCallback() {
           toast({
             title: 'Limited Access',
             description: 'Authentication succeeded but with limited GitHub access. Some features may not work.',
-            variant: 'warning'
+            variant: 'default'
           });
         }
 
