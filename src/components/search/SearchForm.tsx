@@ -20,7 +20,10 @@ export function SearchForm({ onSearch }: SearchFormProps) {
   );
 
   const handleSearch = useCallback((): void => {
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      onSearch({} as Omit<UserSearchParams, 'page'>);
+      return;
+    }
 
     const searchParams: Partial<UserSearchParams> = {
       query: query.trim(),

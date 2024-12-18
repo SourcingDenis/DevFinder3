@@ -59,7 +59,7 @@ export function SearchContainer({ onSearch }: { onSearch?: () => void }) {
     setSearchParams(newParams, { replace: true });
   }, [state.searchParams, setSearchParams]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['users', state.searchParams],
     queryFn: async () => {
       try {
@@ -174,36 +174,55 @@ export function SearchContainer({ onSearch }: { onSearch?: () => void }) {
   }, [setSort]);
 
   const renderContent = useMemo(() => {
-    if (!user) return <SignInPrompt />;
-    if (isLoading && !data) return <LoadingSpinner />;
-    if (!state.searchParams.query) return null;
-    
+    if (!user) {
+      return <SignInPrompt />;
+    }
+
+    if (isLoading && state.searchParams.query) {
+      return <LoadingSpinner />;
+    }
+
+    if (!state.searchParams.query) {
+      return (
+        <div className="text-center mt-8 text-gray-600">
+          Enter a search query to find GitHub users
+        </div>
+      );
+    }
+
+    if (!data?.items?.length) {
+      return (
+        <div className="text-center mt-8 text-gray-600">
+          No users found for your search criteria
+        </div>
+      );
+    }
+
     const totalPages = Math.ceil((data?.total_count || 0) / RESULTS_PER_PAGE);
-    
+
     return (
       <>
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-4">
-            <SortSelect currentSort={state.currentSort} onSortChange={handleSortChange} />
-            <ExportButton 
-              currentUsers={data?.items || []} 
-              searchParams={state.searchParams}
-            />
+        <div className="flex justify-between items-center my-4">
+          <div className="text-sm text-gray-600">
+            Found {data.total_count.toLocaleString()} users
           </div>
-          <Button onClick={() => dispatch({ type: 'SET_SAVE_DIALOG', payload: true })}>
-            Save Search
-          </Button>
+          <div className="flex items-center gap-4">
+            <SortSelect
+              value={state.currentSort}
+              onChange={handleSortChange}
+            />
+            <ExportButton users={data.items} />
+          </div>
         </div>
 
-        {data && (
-          <>
-            <UserList users={data.items} />
-            <Pagination
-              currentPage={state.currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          </>
+        <UserList users={data.items} />
+
+        {totalPages > 1 && (
+          <Pagination
+            currentPage={state.currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         )}
       </>
     );

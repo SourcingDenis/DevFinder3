@@ -34,8 +34,9 @@ const AppContent = memo(() => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold">Loading...</h1>
+        <div className="animate-pulse">
+          <div className="h-8 w-32 bg-gray-200 rounded mb-4"></div>
+          <div className="h-4 w-48 bg-gray-200 rounded"></div>
         </div>
       </div>
     );
@@ -47,35 +48,11 @@ const AppContent = memo(() => {
       <main className="flex-1 w-full container max-w-screen-2xl mx-auto px-4 py-6">
         <Routes>
           <Route path="/" element={user ? <Navigate to="/home" replace /> : <Home />} />
-          <Route 
-            path="/home" 
-            element={
-              <RequireAuth>
-                <Home />
-              </RequireAuth>
-            } 
-          />
-          <Route path="/search" element={
-            <RequireAuth>
-              <Search />
-            </RequireAuth>
-          } />
-          <Route path="/bookmarks" element={
-            <RequireAuth>
-              <SavedProfiles />
-            </RequireAuth>
-          } />
-          <Route path="/saved-searches" element={
-            <RequireAuth>
-              <SavedSearches />
-            </RequireAuth>
-          } />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/settings" element={
-            <RequireAuth>
-              <Settings />
-            </RequireAuth>
-          } />
+          <Route path="/home" element={<RequireAuth><Search /></RequireAuth>} />
+          <Route path="/saved-profiles" element={<RequireAuth><SavedProfiles /></RequireAuth>} />
+          <Route path="/saved-searches" element={<RequireAuth><SavedSearches /></RequireAuth>} />
+          <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
           <Route path="/roadmap" element={<ProductRoadmap />} />
         </Routes>
       </main>
@@ -86,18 +63,17 @@ const AppContent = memo(() => {
   );
 });
 
-// Memoize App to prevent unnecessary re-renders
-const App = memo(() => {
+AppContent.displayName = 'AppContent';
+
+export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <TooltipProvider>
+      <TooltipProvider>
+        <AuthProvider>
           <AppContent />
           <Toaster />
-        </TooltipProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </TooltipProvider>
     </ThemeProvider>
   );
-});
-
-export default App;
+}
