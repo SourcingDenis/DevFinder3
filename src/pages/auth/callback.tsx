@@ -23,7 +23,27 @@ export function AuthCallback() {
           return;
         }
 
-        console.log('Session obtained:', {
+        // Store the tokens in the database
+        if (session.provider_token) {
+          const { error: insertError } = await supabase
+            .from('user_tokens')
+            .upsert({
+              user_id: session.user.id,
+              provider: 'github',
+              access_token: session.provider_token,
+              refresh_token: session.provider_refresh_token || null,
+              expires_at: new Date(Date.now() + 55 * 60 * 1000).toISOString(), // 55 minutes from now
+            }, {
+              onConflict: 'user_id,provider'
+            });
+
+          if (insertError) {
+            console.error('Failed to store tokens:', insertError);
+            // Continue anyway as the session is still valid
+          }
+        }
+
+        console.log('Auth completed successfully:', {
           user: session.user?.id,
           expires_at: session.expires_at,
           provider_token: !!session.provider_token,
@@ -34,7 +54,6 @@ export function AuthCallback() {
         navigate('/home', { replace: true });
       } catch (error) {
         console.error('Auth callback error:', error);
-        // Redirect to login page on error
         navigate('/', { replace: true });
       }
     };

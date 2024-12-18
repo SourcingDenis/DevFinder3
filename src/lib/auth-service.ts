@@ -64,7 +64,7 @@ class AuthService {
 
     try {
       // First try to get the current session
-      const { data: session, error: sessionError } = await this.supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
       
       if (sessionError) {
         console.error('Session error:', sessionError);
@@ -86,6 +86,24 @@ class AuthService {
           refresh_token: refreshData.session.provider_refresh_token ?? null,
           expiresAt: Date.now() + this.TOKEN_VALIDITY,
         };
+
+        // Store the refreshed tokens
+        const { error: storeError } = await this.supabase
+          .from('user_tokens')
+          .upsert({
+            user_id: refreshData.session.user.id,
+            provider: 'github',
+            access_token: token,
+            refresh_token: refreshData.session.provider_refresh_token || null,
+            expires_at: new Date(Date.now() + this.TOKEN_VALIDITY).toISOString(),
+          }, {
+            onConflict: 'user_id,provider'
+          });
+
+        if (storeError) {
+          console.error('Failed to store refreshed tokens:', storeError);
+          // Continue anyway as we have a valid token
+        }
 
         this.onTokenRefreshed({ token });
         return token;
@@ -126,8 +144,17 @@ class AuthService {
         (error.message.includes('expired') || error.message.includes('No valid tokens'));
       
       if (isExpiredError) {
-        // Only sign out if the token is actually expired
-        console.error('Token expired, signing out:', error);
+        // Try one more time to refresh the session before signing out
+        try {
+          const { data: lastRefresh, error: lastError } = await this.supabase.auth.refreshSession();
+          if (!lastError && lastRefresh.session) {
+            return this.refreshToken(); // Try the refresh flow again
+          }
+        } catch (retryError) {
+          console.error('Final refresh attempt failed:', retryError);
+        }
+        
+        console.error('Token expired and refresh failed, signing out:', error);
         toast.error('Your session has expired. Please sign in again.');
         await this.supabase.auth.signOut();
       } else {
