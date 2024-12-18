@@ -23,13 +23,6 @@ function isAxiosError(error: unknown): error is AxiosError {
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
-// Cache for rate limit info
-let rateLimitCache = {
-  remaining: 60,
-  reset: 0,
-  lastChecked: 0
-};
-
 // Implement request queue to handle rate limiting
 const requestQueue: Array<() => Promise<any>> = [];
 let isProcessingQueue = false;
@@ -69,16 +62,6 @@ const getGithubApi = async () => {
     // Add response interceptor for automatic token refresh
     api.interceptors.response.use(
       response => {
-        // Update rate limit info
-        const remaining = response.headers['x-ratelimit-remaining'];
-        const reset = response.headers['x-ratelimit-reset'];
-        if (remaining && reset) {
-          rateLimitCache = {
-            remaining: parseInt(remaining),
-            reset: parseInt(reset) * 1000, // Convert to milliseconds
-            lastChecked: Date.now()
-          };
-        }
         return response;
       },
       async (error: AxiosError) => {
@@ -161,6 +144,8 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
   const searchParams = new URLSearchParams();
   let queryString = params.query;
 
+  console.log('Search params:', params); // Debug log
+
   // Optimize query string construction
   if (params.language) {
     queryString += ` language:${params.language}`;
@@ -178,82 +163,41 @@ export async function searchUsers(params: UserSearchParams): Promise<SearchRespo
   if (params.per_page) searchParams.set('per_page', params.per_page.toString());
   if (params.page) searchParams.set('page', params.page.toString());
 
-  // Check rate limit before making request
-  if (rateLimitCache.remaining <= 0) {
-    const now = Date.now() / 1000;
-    if (now < rateLimitCache.reset) {
-      const waitTime = (rateLimitCache.reset - now) * 1000;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+  console.log('Final query:', searchParams.toString()); // Debug log
+
+  try {
+    const githubApi = await getGithubApi();
+    console.log('Got GitHub API client'); // Debug log
+
+    const response = await githubApi.get('/search/users', {
+      params: searchParams
+    });
+
+    console.log('Search response:', { 
+      status: response.status,
+      headers: {
+        rateLimit: response.headers['x-ratelimit-remaining'],
+        rateLimitReset: response.headers['x-ratelimit-reset']
+      },
+      totalCount: response.data.total_count
+    }); // Debug log
+
+    if (response.status !== 200) {
+      throw new Error(`GitHub API error: ${response.status}`);
     }
-  }
 
-  return new Promise((resolve, reject) => {
-    const request = async () => {
-      try {
-        const githubApi = await getGithubApi();
-        const response = await githubApi.get('/search/users', {
-          params: searchParams
-        });
-
-        // Update rate limit info
-        rateLimitCache = {
-          remaining: Number(response.headers['x-ratelimit-remaining']) || 0,
-          reset: Number(response.headers['x-ratelimit-reset']) || 0,
-          lastChecked: Date.now()
-        };
-
-        if (response.status !== 200) {
-          throw new Error(`GitHub API error: ${response.status}`);
-        }
-
-        const data = response.data;
-
-        // Fetch detailed information for each user
-        const users = await Promise.all(
-          data.items.map(async (user: any) => {
-            try {
-              // Fetch detailed user info
-              const userDetailsResponse = await githubApi.get(`/users/${user.login}`);
-              const userDetails = userDetailsResponse.data;
-
-              // Fetch user's top language
-              const topLanguage = await fetchUserTopLanguage(user.login);
-              
-              // Fetch user's email
-              const { email, source } = await findUserEmail(user.login);
-              
-              return {
-                ...userDetails,
-                topLanguage,
-                email,
-                source,
-                score: user.score
-              };
-            } catch (error) {
-              console.error(`Error fetching details for user ${user.login}:`, error);
-              return {
-                login: user.login,
-                id: user.id,
-                avatar_url: user.avatar_url,
-                score: user.score
-              };
-            }
-          })
-        );
-
-        resolve({
-          items: users,
-          total_count: data.total_count,
-          incomplete_results: data.incomplete_results
-        });
-      } catch (error) {
-        reject(error);
-      }
+    return {
+      items: response.data.items,
+      total_count: response.data.total_count,
+      incomplete_results: response.data.incomplete_results
     };
-
-    requestQueue.push(request);
-    processQueue();
-  });
+  } catch (error) {
+    console.error('Search error:', error); // Debug log
+    if (error instanceof Error) {
+      throw new Error(`Search failed: ${error.message}`);
+    }
+    throw new Error('Search failed with unknown error');
+  }
 }
 
 export async function findUserEmail(username: string): Promise<EmailResult> {
