@@ -23,7 +23,11 @@ import { supabase } from '@/lib/supabase'; // Assuming supabase is imported from
 const RESULTS_PER_PAGE = 30;
 const PREFETCH_THRESHOLD = 0.8;
 
-export function SearchContainer({ onSearch }: { onSearch?: () => void }) {
+interface SearchContainerProps {
+  onSearch?: () => void;
+}
+
+export function SearchContainer({ onSearch }: SearchContainerProps) {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -59,7 +63,7 @@ export function SearchContainer({ onSearch }: { onSearch?: () => void }) {
     setSearchParams(newParams, { replace: true });
   }, [state.searchParams, setSearchParams]);
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['users', state.searchParams],
     queryFn: async () => {
       try {
@@ -208,10 +212,14 @@ export function SearchContainer({ onSearch }: { onSearch?: () => void }) {
           </div>
           <div className="flex items-center gap-4">
             <SortSelect
-              value={state.currentSort}
-              onChange={handleSortChange}
+              currentSort={state.currentSort}
+              onSortChange={handleSortChange}
             />
-            <ExportButton users={data.items} />
+            <ExportButton 
+              currentUsers={data?.items || []}
+              searchParams={state.searchParams}
+              disabled={isLoading}
+            />
           </div>
         </div>
 
