@@ -258,7 +258,6 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
             <div className="flex gap-4">
               <SortSelect currentSort={currentSort} onSortChange={handleSortChange} />
               <ExportButton 
-                currentUsers={users} 
                 searchParams={memoizedSearchParams}
                 disabled={isLoading} 
               />

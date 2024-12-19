@@ -1,20 +1,18 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
-import { GitHubUser, UserSearchParams } from '@/types';
+import { UserSearchParams } from '@/types';
 import { exportUsersToCSV } from '@/lib/csv-utils';
 import { fetchAllUsers } from '@/lib/github-api';
 import { useAuth } from '../auth/AuthProvider';
 import { useToast } from '@/components/ui/use-toast';
 
 interface ExportButtonProps {
-  currentUsers: GitHubUser[];
   searchParams: UserSearchParams;
   disabled?: boolean;
 }
 
 export const ExportButton: React.FC<ExportButtonProps> = ({ 
-  currentUsers, 
   searchParams, 
   disabled 
 }) => {
@@ -56,10 +54,8 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
     setExportProgress(0);
 
     try {
-      // Use the current users if less than 100, otherwise fetch all users
-      const usersToExport = currentUsers.length < 100 
-        ? currentUsers 
-        : await fetchAllUsers(searchParams);
+      // Always fetch all users for export
+      const usersToExport = await fetchAllUsers(searchParams);
 
       const filename = generateFilename();
       await exportUsersToCSV(usersToExport, { 
