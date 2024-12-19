@@ -19,11 +19,9 @@ export function SearchForm({ onSearch }: SearchFormProps) {
     searchParams.get('locations')?.split(',').filter(Boolean) || []
   );
 
-  const handleSearch = useCallback((): void => {
-    if (!query.trim()) {
-      onSearch({} as Omit<UserSearchParams, 'page'>);
-      return;
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
 
     const searchParams: Partial<UserSearchParams> = {
       query: query.trim(),
@@ -32,7 +30,7 @@ export function SearchForm({ onSearch }: SearchFormProps) {
     };
 
     onSearch(searchParams as Omit<UserSearchParams, 'page'>);
-  }, [query, language, locations, onSearch]);
+  };
 
   const handleLocationKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && locationInput.trim()) {
@@ -65,7 +63,7 @@ export function SearchForm({ onSearch }: SearchFormProps) {
   }, []);
 
   return (
-    <form className="space-y-4" onSubmit={e => e.preventDefault()}>
+    <form className="space-y-4" onSubmit={handleSubmit}>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -100,8 +98,7 @@ export function SearchForm({ onSearch }: SearchFormProps) {
         <LocationTags locations={locations} onRemove={handleRemoveLocation} />
       )}
       <Button 
-        type="button" 
-        onClick={handleSearch}
+        type="submit" 
         className="w-full"
         disabled={!query.trim()}
       >

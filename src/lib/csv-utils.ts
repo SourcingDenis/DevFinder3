@@ -28,48 +28,52 @@ export async function convertToCSV(
     'Top Language'
   ];
 
-  // Process users in chunks to allow progress updates
-  const processedRows: string[][] = [];
+  // Use a string builder approach for better memory efficiency
+  const rows: string[] = [headers.join(',')];
+  const totalUsers = users.length;
+  const chunkSize = 50;
   
   try {
-    for (let i = 0; i < users.length; i += 50) {
-      const chunk = users.slice(i, i + 50);
+    for (let i = 0; i < totalUsers; i += chunkSize) {
+      const chunk = users.slice(i, i + chunkSize);
       
-      const chunkRows = chunk.map(user => [
-        String(user.login),
-        String(user.name || ''),
-        String(user.bio || '').replace(/"/g, '""'), // Escape quotes in CSV
-        String(user.location || ''),
-        String(user.company || ''),
-        String(user.blog || ''),
-        String(user.public_repos),
-        String(user.followers),
-        String(user.following),
-        new Date(user.created_at).toLocaleDateString(),
-        String(user.html_url),
-        String(user.topLanguage || '')
-      ]);
+      for (const user of chunk) {
+        const row = [
+          user.login,
+          (user.name || '').replace(/"/g, '""'),
+          (user.bio || '').replace(/"/g, '""'),
+          (user.location || '').replace(/"/g, '""'),
+          (user.company || '').replace(/"/g, '""'),
+          user.blog || '',
+          user.public_repos.toString(),
+          user.followers.toString(),
+          user.following.toString(),
+          new Date(user.created_at).toLocaleDateString(),
+          user.html_url,
+          user.topLanguage || ''
+        ].map(value => `"${value}"`).join(',');
 
-      processedRows.push(...chunkRows);
+        rows.push(row);
+      }
 
       // Update progress
-      const progress = Math.min(100, Math.round((i + chunk.length) / users.length * 100));
+      const progress = Math.min(100, Math.round((i + chunk.length) / totalUsers * 100));
       onProgress(progress);
 
-      // Allow UI to update and prevent blocking
+      // Allow UI to update
       await new Promise(resolve => setTimeout(resolve, 0));
     }
 
-    const csvContent = [
-      headers.join(','),
-      ...processedRows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
-
-    return csvContent;
+    return rows.join('\n');
   } catch (error) {
     console.error('Error converting users to CSV:', error);
-    onProgress(100); // Ensure progress callback is called even on error
-    throw error; // Rethrow to allow caller to handle
+    throw new Error(
+      error instanceof Error 
+        ? `Failed to convert users to CSV: ${error.message}`
+        : 'Failed to convert users to CSV'
+    );
+  } finally {
+    onProgress(100);
   }
 }
 
@@ -103,34 +107,47 @@ export async function exportUsersToCSV(
   } = options;
 
   try {
-    // Validate input
-    if (!users || users.length === 0) {
+    // Input validation
+    if (!users?.length) {
       throw new Error('No users to export');
     }
 
-    // Track overall progress
+    // Create a wrapper for progress to handle both conversion and download
+    let conversionComplete = false;
     const progressTracker = (progress: number) => {
-      console.log(`Export progress: ${progress}%`);
-      onProgress(progress);
+      // Scale progress to 90% for conversion, leaving 10% for download
+      const scaledProgress = conversionComplete ? 90 + (progress * 0.1) : progress * 0.9;
+      onProgress(Math.round(scaledProgress));
     };
 
+    // Convert to CSV
     const csvContent = await convertToCSV(users, { 
-      ...options, 
       onProgress: progressTracker 
     });
+    conversionComplete = true;
 
     // Validate CSV content
-    if (!csvContent || csvContent.trim().length === 0) {
+    if (!csvContent?.trim()) {
       throw new Error('Generated CSV is empty');
     }
 
-    // Download CSV with custom filename
-    downloadCSV(csvContent, filename);
+    // Download CSV
+    try {
+      downloadCSV(csvContent, filename);
+      progressTracker(100);
+    } catch (downloadError) {
+      throw new Error(
+        downloadError instanceof Error 
+          ? `Failed to download CSV: ${downloadError.message}`
+          : 'Failed to download CSV'
+      );
+    }
   } catch (error) {
     console.error('CSV export failed:', error);
-    
-    // Provide user-friendly error handling
-    onProgress(100); // Ensure progress is completed
-    throw new Error(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      error instanceof Error 
+        ? `Export failed: ${error.message}`
+        : 'Export failed: Unknown error'
+    );
   }
 }

@@ -12,7 +12,7 @@ type EmailFinderProps = {
 };
 
 export const EmailFinder: React.FC<EmailFinderProps> = ({ username, onClose, onEmailSaved }) => {
-  const [email, setEmail] = useState(`${username.toLowerCase()}@gmail.com`);
+  const [email, setEmail] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSaveEmail = async () => {

@@ -28,9 +28,18 @@ export function SavedProfiles() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const fetchSavedProfiles = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found, skipping fetch. User state:', { user });
+      return;
+    }
 
     try {
+      console.log('Starting to fetch profiles. Auth state:', { 
+        userId: user.id,
+        isAuthenticated: !!user,
+        userMetadata: user.user_metadata 
+      });
+      console.log('Fetching profiles for user:', user.id);
       // Fetch lists first
       const { data: listData, error: listError } = await supabase
         .from('profile_lists')
@@ -38,7 +47,15 @@ export function SavedProfiles() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
+      console.log('Profile lists query result:', { 
+        success: !listError,
+        listCount: listData?.length || 0,
+        error: listError?.message,
+        query: `user_id = ${user.id}`
+      });
+
       if (listError) {
+        console.error('Error fetching lists:', listError);
         toast({
           title: 'Error',
           description: `Failed to fetch profile lists: ${listError.message}`,
@@ -59,9 +76,11 @@ export function SavedProfiles() {
       if (selectedListId !== null) {
         // If a specific list is selected, filter by that list
         query.eq('list_id', selectedListId);
+        console.log('Fetching profiles for list:', selectedListId);
       } else {
         // If "No List" is selected, filter for profiles with null list_id
         query.is('list_id', null);
+        console.log('Fetching profiles with no list');
       }
 
       console.log('Query Details:', {
@@ -71,10 +90,29 @@ export function SavedProfiles() {
       });
 
       const { data, error } = await query;
+      
+      console.log('Saved profiles query result:', {
+        success: !error,
+        profileCount: data?.length || 0,
+        error: error?.message,
+        query: `user_id = ${user.id}${selectedListId !== null ? ` AND list_id = ${selectedListId}` : ' AND list_id IS NULL'}`,
+        rawData: data
+      });
+
+      console.log('Fetched profiles data:', {
+        count: data?.length || 0,
+        profiles: data?.map(p => ({
+          id: p.id,
+          username: p.username,
+          hasGithubData: !!p.github_data,
+          githubDataKeys: p.github_data ? Object.keys(p.github_data) : []
+        }))
+      });
       console.log('Raw Saved Profiles Data:', data);
       console.log('Query Error:', error);
 
       if (error) {
+        console.error('Error fetching profiles:', error);
         toast({
           title: 'Error',
           description: `Failed to fetch saved profiles: ${error.message}`,
@@ -85,16 +123,26 @@ export function SavedProfiles() {
 
       // Validate the profiles
       const mappedProfiles = data
-        .filter(profile => 
-          profile.github_data && 
-          typeof profile.github_data === 'object' && 
-          'login' in profile.github_data && 
-          'avatar_url' in profile.github_data && 
-          'id' in profile && 
-          'user_id' in profile && 
-          'username' in profile && 
-          'created_at' in profile
-        )
+        .filter(profile => {
+          const isValid = profile.github_data && 
+            typeof profile.github_data === 'object' && 
+            'login' in profile.github_data && 
+            'avatar_url' in profile.github_data && 
+            'id' in profile && 
+            'user_id' in profile && 
+            'username' in profile && 
+            'created_at' in profile;
+          
+          if (!isValid) {
+            console.warn('Invalid profile found:', {
+              id: profile.id,
+              username: profile.username,
+              hasGithubData: !!profile.github_data,
+              githubDataKeys: profile.github_data ? Object.keys(profile.github_data) : []
+            });
+          }
+          return isValid;
+        })
         .map(profile => {
           const validatedProfile = {
             id: profile.id,

@@ -5,9 +5,10 @@ import { LoadingSpinner } from '../ui/loading-spinner';
 import { Button } from '../ui/button';
 import { useNavigate } from 'react-router-dom';
 import type { UserSearchParams } from '@/types';
+import { toast } from 'react-toastify';
 
 interface SavedSearch {
-  id: number;
+  id: string; 
   name: string;
   search_params: Omit<UserSearchParams, 'page'>;
   created_at: string;
@@ -31,9 +32,10 @@ export function SavedSearches() {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        setSearches(data);
+        setSearches(data || []);
       } catch (error) {
         console.error('Error fetching saved searches:', error);
+        toast.error('Failed to load saved searches');
       } finally {
         setIsLoading(false);
       }
@@ -45,26 +47,32 @@ export function SavedSearches() {
   const handleExecuteSearch = (searchParams: Omit<UserSearchParams, 'page'>) => {
     const queryString = new URLSearchParams();
     
-    // Construct query with language and other parameters
-    let fullQuery = searchParams.query || '';
-    if (searchParams.language) {
-      fullQuery += ` language:${searchParams.language}`;
+    if (searchParams.query) {
+      queryString.append('query', searchParams.query);
     }
-
-    // Add parameters to URL
-    queryString.append('query', fullQuery.trim());
-    if (searchParams.language) queryString.append('language', searchParams.language);
-    if (searchParams.locations?.length) queryString.append('locations', searchParams.locations.join(','));
-    if (searchParams.sort) queryString.append('sort', searchParams.sort);
-    if (searchParams.order) queryString.append('order', searchParams.order);
-    if (searchParams.per_page) queryString.append('per_page', String(searchParams.per_page));
-    if (typeof searchParams.hireable === 'boolean') queryString.append('hireable', String(searchParams.hireable));
+    if (searchParams.language) {
+      queryString.append('language', searchParams.language);
+    }
+    if (searchParams.locations?.length) {
+      queryString.append('locations', searchParams.locations.join(','));
+    }
+    if (searchParams.sort) {
+      queryString.append('sort', searchParams.sort);
+    }
+    if (searchParams.order) {
+      queryString.append('order', searchParams.order);
+    }
+    if (searchParams.per_page) {
+      queryString.append('per_page', String(searchParams.per_page));
+    }
+    if (typeof searchParams.hireable === 'boolean') {
+      queryString.append('hireable', String(searchParams.hireable));
+    }
     
-    // Navigate to search page with full query parameters
     navigate(`/search?${queryString.toString()}`);
   };
 
-  const handleDeleteSearch = async (id: number) => {
+  const handleDeleteSearch = async (id: string) => {
     try {
       const { error } = await supabase
         .from('saved_searches')
@@ -73,8 +81,10 @@ export function SavedSearches() {
 
       if (error) throw error;
       setSearches(searches.filter(search => search.id !== id));
+      toast.success('Search deleted successfully');
     } catch (error) {
       console.error('Error deleting saved search:', error);
+      toast.error('Failed to delete search');
     }
   };
 
@@ -99,35 +109,52 @@ export function SavedSearches() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4">
       {searches.map((search) => (
         <div
           key={search.id}
-          className="flex items-center justify-between p-4 bg-card rounded-lg shadow border"
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border bg-card"
         >
-          <div>
-            <h3 className="font-semibold text-foreground">{search.name}</h3>
+          <div className="space-y-1">
+            <h3 className="font-medium">{search.name}</h3>
             <p className="text-sm text-muted-foreground">
               {new Date(search.created_at).toLocaleDateString()}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Query: {search.search_params.query}
-              {search.search_params.locations && search.search_params.locations.length > 0 && ` • Location: ${search.search_params.locations.join(', ')}`}
-              {search.search_params.language && ` • Language: ${search.search_params.language}`}
-            </p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {search.search_params.query && (
+                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                  {search.search_params.query}
+                </span>
+              )}
+              {search.search_params.language && (
+                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                  {search.search_params.language}
+                </span>
+              )}
+              {search.search_params.locations?.map((location) => (
+                <span
+                  key={location}
+                  className="text-xs bg-primary/10 text-primary px-2 py-1 rounded"
+                >
+                  {location}
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
+              variant="outline"
+              className="flex-1 sm:flex-none"
               onClick={() => handleExecuteSearch(search.search_params)}
-              variant="default"
             >
-              Execute
+              Execute Search
             </Button>
             <Button
-              onClick={() => handleDeleteSearch(search.id)}
               variant="destructive"
+              size="icon"
+              onClick={() => handleDeleteSearch(search.id)}
             >
-              Delete
+              ×
             </Button>
           </div>
         </div>

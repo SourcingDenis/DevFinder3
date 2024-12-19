@@ -9,9 +9,40 @@ import { LightbulbIcon, Search as SearchIcon, MapPin, Code2, X } from "lucide-re
 import { useSearchTips } from '@/hooks/useSearchTips';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import type { UserSearchParams } from '@/types';
 
 export function Search() {
   const { isVisible, isExpanded, setIsExpanded, hidePermanently } = useSearchTips();
+  const navigate = useNavigate();
+
+  const handleSearch = (params: Partial<UserSearchParams>) => {
+    const searchParams = new URLSearchParams();
+    
+    if (params.query) {
+      searchParams.set('query', params.query);
+    }
+    if (params.language) {
+      searchParams.set('language', params.language);
+    }
+    if (params.locations?.length) {
+      searchParams.set('locations', params.locations.join(','));
+    }
+    if (params.sort) {
+      searchParams.set('sort', params.sort);
+    }
+    if (params.order) {
+      searchParams.set('order', params.order);
+    }
+    if (params.per_page) {
+      searchParams.set('per_page', params.per_page.toString());
+    }
+    if (params.hireable !== undefined) {
+      searchParams.set('hireable', params.hireable.toString());
+    }
+    
+    navigate(`/search?${searchParams.toString()}`);
+  };
 
   return (
     <div className="container max-w-screen-2xl py-6">
@@ -85,7 +116,7 @@ export function Search() {
           </Accordion>
         </div>
       )}
-      <SearchContainer onSearch={() => {}} />
+      <SearchContainer onSearch={handleSearch} />
     </div>
   );
 }

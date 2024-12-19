@@ -50,6 +50,7 @@ const AppContent = memo(() => {
           <Route path="/" element={user ? <Navigate to="/home" replace /> : <Home />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/home" element={<RequireAuth><Search /></RequireAuth>} />
+          <Route path="/search" element={<RequireAuth><Search /></RequireAuth>} />
           <Route path="/saved-profiles" element={<RequireAuth><SavedProfiles /></RequireAuth>} />
           <Route path="/saved-searches" element={<RequireAuth><SavedSearches /></RequireAuth>} />
           <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />

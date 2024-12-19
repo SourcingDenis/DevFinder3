@@ -3,7 +3,6 @@ import type { GitHubUser, SavedProfile } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import { SaveProfileButton } from './SaveProfileButton';
 import { UserStats } from './UserStats';
 import { UserInfo } from './UserInfo';
@@ -13,14 +12,7 @@ import {
   Loader2,
   Calendar
 } from 'lucide-react';
-import { findUserEmail } from '@/lib/github-api';
 import { toast } from 'sonner';
-import { EmailFinder } from './EmailFinder';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 // Extend GitHubUser interface to include source and confidence
 interface ExtendedGitHubUser extends GitHubUser {
@@ -57,97 +49,10 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
   onEmailRequest,
   ...props 
 }, ref) => {
-  const [isEmailLoading, setIsEmailLoading] = React.useState(false);
-  const [showEmailInput, setShowEmailInput] = React.useState(false);
-  const [userEmail, setUserEmail] = React.useState<EmailResult>({
+  const userEmail: EmailResult = {
     email: user.email || null,
     source: user.source || null,
     confidence: user.confidence
-  });
-
-  const handleFindEmail = async () => {
-    if (!user.isEmailRequested) {
-      onEmailRequest?.(user.login);
-      return;
-    }
-
-    setIsEmailLoading(true);
-    try {
-      const result = await findUserEmail(user.login);
-      if (result.email) {
-        setUserEmail(result);
-        toast.success(`Email found for ${user.login}`, {
-          description: `Source: ${result.source}${result.confidence ? ` (${Math.round(result.confidence * 100)}% confidence)` : ''}`
-        });
-      } else {
-        setShowEmailInput(true);
-      }
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('Authentication failed')) {
-        toast.error('Authentication required', {
-          description: 'Please sign in to find user emails'
-        });
-      } else {
-        toast.error('Error finding email', {
-          description: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    } finally {
-      setIsEmailLoading(false);
-    }
-  };
-
-  const handleEmailSaved = (email: string, source: string, confidence: number = 1.0) => {
-    setUserEmail({ email, source, confidence });
-    setShowEmailInput(false);
-  };
-
-  const getEmailSourceBadge = () => {
-    if (!userEmail.source) return null;
-
-    const sourceColors: Record<string, string> = {
-      'github_profile': 'bg-green-500',
-      'public_events_commit': 'bg-blue-500',
-      'manual_input': 'bg-yellow-500'
-    };
-
-    const sourceLabels: Record<string, string> = {
-      'github_profile': 'GitHub Profile',
-      'public_events_commit': 'Commit History',
-      'manual_input': 'Manual Input'
-    };
-
-    const sourceColor = sourceColors[userEmail.source] || 'bg-gray-500';
-    const sourceLabel = sourceLabels[userEmail.source] || userEmail.source;
-
-    return (
-      <Tooltip>
-        <TooltipTrigger>
-          <Badge 
-            variant="secondary" 
-            className={cn("ml-2 cursor-help", sourceColor)}
-          >
-            {sourceLabel}
-            {userEmail.confidence !== undefined && (
-              <span className="ml-1 opacity-75">
-                {Math.round(userEmail.confidence * 100)}%
-              </span>
-            )}
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent>
-          <div className="text-sm">
-            <p className="font-medium">{userEmail.email}</p>
-            <p className="text-xs text-muted-foreground">
-              Source: {userEmail.source}
-              {userEmail.confidence !== undefined && 
-                ` (${Math.round(userEmail.confidence * 100)}% confidence)`
-              }
-            </p>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    );
   };
 
   console.log('UserCard Props:', { user: user.login, listName, isSaved });
@@ -169,21 +74,6 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
           <div className="flex gap-6 relative">
             {/* Save button in top right corner */}
             <div className="absolute right-0 top-0 flex items-center gap-2">
-              {/* Email Finding Button */}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleFindEmail}
-                disabled={isEmailLoading}
-                className="h-8 w-8"
-              >
-                {isEmailLoading ? (
-                  <Loader2 className="h-4 w-4" />
-                ) : (
-                  <Mail className="h-4 w-4" />
-                )}
-              </Button>
-
               <SaveProfileButton
                 user={user}
                 isSaved={isSaved}
@@ -248,7 +138,6 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
                   <div className="flex items-center gap-2 mt-2">
                     <Mail className="w-4 h-4" />
                     <span className="flex-1 truncate">{userEmail.email}</span>
-                    {getEmailSourceBadge()}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -276,17 +165,6 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
               <UserStats user={user} />
             </div>
           </div>
-
-          {/* Email Input Section */}
-          {showEmailInput && (
-            <div className="w-full mt-2">
-              <EmailFinder 
-                username={user.login}
-                onClose={() => setShowEmailInput(false)}
-                onEmailSaved={handleEmailSaved}
-              />
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

@@ -35,7 +35,7 @@ export function Settings() {
                 <User className="h-5 w-5 text-gray-500 flex-shrink-0" />
                 <div>
                   <p className="font-medium break-all">{user.email}</p>
-                  <p className="text-sm text-gray-500">Supabase Account</p>
+                  <p className="text-sm text-gray-500">GitHub Account</p>
                 </div>
               </div>
               <Button variant="destructive" onClick={handleLogout} className="w-full sm:w-auto">

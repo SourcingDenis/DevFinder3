@@ -7,14 +7,37 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: Error | null;
+  signInWithGitHub: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, error: null });
+const AuthContext = createContext<AuthContextType>({ 
+  user: null, 
+  loading: true, 
+  error: null,
+  signInWithGitHub: async () => {} 
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  const signInWithGitHub = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          scopes: 'read:user read:email',
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (err) {
+      console.error('Sign in error:', err);
+      toast.error('Failed to sign in with GitHub');
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -84,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, error }}>
+    <AuthContext.Provider value={{ user, loading, error, signInWithGitHub }}>
       {children}
     </AuthContext.Provider>
   );

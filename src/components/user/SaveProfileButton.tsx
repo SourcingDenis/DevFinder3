@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Bookmark } from 'lucide-react';
+import { Bookmark, X } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import type { GitHubUser, SavedProfile, ProfileList } from '@/types';
@@ -40,6 +40,11 @@ export function SaveProfileButton({
   const [selectedListId, setSelectedListId] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Update saved state when isSaved prop changes
+  useEffect(() => {
+    setSaved(isSaved);
+  }, [isSaved]);
+
   useEffect(() => {
     const checkSavedStatus = async () => {
       if (!authUser) return;
@@ -48,7 +53,7 @@ export function SaveProfileButton({
         .from('saved_profiles')
         .select('*')
         .eq('user_id', authUser.id)
-        .eq('github_username', user.login)
+        .eq('username', user.login)
         .single();
 
       if (error) {
@@ -59,8 +64,11 @@ export function SaveProfileButton({
       setSaved(!!data);
     };
 
-    checkSavedStatus();
-  }, [authUser, user.login]);
+    // Only check saved status if isSaved is false
+    if (!isSaved) {
+      checkSavedStatus();
+    }
+  }, [authUser, user.login, isSaved]);
 
   useEffect(() => {
     const fetchLists = async () => {
@@ -83,19 +91,21 @@ export function SaveProfileButton({
     if (!authUser) return;
 
     try {
+      const profileData = {
+        user_id: authUser.id,
+        username: user.login,
+        email: user.email || null,
+        email_source: user.email ? 'github_profile' : null,
+        github_url: user.html_url,
+        github_data: user,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ...(selectedListId !== null && { list_id: selectedListId })
+      };
+
       const { data, error } = await supabase
         .from('saved_profiles')
-        .insert({
-          user_id: authUser.id,
-          username: user.login,
-          email: user.email || null,
-          email_source: user.email ? 'github_profile' : null,
-          github_url: user.html_url,
-          github_data: user,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          list_id: selectedListId
-        })
+        .insert(profileData)
         .select()
         .single();
 
@@ -149,8 +159,22 @@ export function SaveProfileButton({
   };
 
   const handleListChange = (value: string) => {
-    // Convert value to number or null
-    setSelectedListId(value === 'no-list' ? null : parseInt(value, 10));
+    if (value === 'no-list') {
+      setSelectedListId(null);
+      return;
+    }
+    
+    const parsedId = parseInt(value, 10);
+    if (isNaN(parsedId)) {
+      toast({
+        title: 'Error',
+        description: 'Invalid list selection',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setSelectedListId(parsedId);
   };
 
   if (!authUser) return null;
@@ -158,11 +182,12 @@ export function SaveProfileButton({
   if (saved) {
     return (
       <Button
-        variant="default"
+        variant="ghost"
+        size="icon"
         onClick={handleRemoveProfile}
+        className={`h-8 w-8 hover:bg-destructive/10 hover:text-destructive ${className}`}
       >
-        <Bookmark className="h-4 w-4 fill-current" />
-        Remove
+        <X className="h-4 w-4" />
       </Button>
     );
   }

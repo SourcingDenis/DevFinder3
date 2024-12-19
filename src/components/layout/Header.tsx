@@ -42,10 +42,10 @@ export function Header() {
         Search
       </Link>
       <Link
-        to="/bookmarks"
+        to="/saved-profiles"
         className={cn(
           "text-sm font-medium transition-colors hover:text-foreground/80",
-          isActive('/bookmarks') ? "text-foreground" : "text-foreground/60"
+          isActive('/saved-profiles') ? "text-foreground" : "text-foreground/60"
         )}
       >
         Saved Profiles

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Search, ArrowRight } from 'lucide-react';
 import type { UserSearchParams, RecentSearch } from '@/types/search';
+import { toast } from 'react-toastify';
 
 interface SearchHistoryProps {
   onSearch?: (params: Partial<UserSearchParams>) => void;
@@ -19,29 +19,31 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
     if (!user) return;
 
     const fetchRecentSearches = async () => {
-      const { data, error } = await supabase
-        .from('recent_searches')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      try {
+        const { data, error } = await supabase
+          .from('recent_searches')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-      if (error) {
+        if (error) throw error;
+
+        // More efficient deduplication using a Set and Map
+        const uniqueSearchesMap = new Map<string, RecentSearch>();
+        data?.forEach(search => {
+          const searchParamsKey = JSON.stringify(search.search_params);
+          if (!uniqueSearchesMap.has(searchParamsKey)) {
+            uniqueSearchesMap.set(searchParamsKey, search);
+          }
+        });
+
+        const uniqueSearches = Array.from(uniqueSearchesMap.values()).slice(0, 5);
+        setRecentSearches(uniqueSearches);
+      } catch (error) {
         console.error('Error fetching recent searches:', error);
-        return;
+        toast.error('Failed to load recent searches');
       }
-
-      // More efficient deduplication using a Set and Map
-      const uniqueSearchesMap = new Map<string, RecentSearch>();
-      data?.forEach(search => {
-        const searchParamsKey = JSON.stringify(search.search_params);
-        if (!uniqueSearchesMap.has(searchParamsKey)) {
-          uniqueSearchesMap.set(searchParamsKey, search);
-        }
-      });
-
-      const uniqueSearches = Array.from(uniqueSearchesMap.values()).slice(0, 5);
-      setRecentSearches(uniqueSearches);
     };
 
     fetchRecentSearches();
@@ -68,7 +70,12 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
     };
   }, [user]);
 
-  const handleExecuteSearch = (searchParams: Omit<UserSearchParams, 'page'>) => {
+  const handleExecuteSearch = (searchParams: Partial<UserSearchParams>) => {
+    if (!searchParams || !searchParams.query) {
+      console.warn('Invalid search parameters:', searchParams);
+      return;
+    }
+
     // First trigger the onSearch callback with the search parameters
     onSearch?.(searchParams);
 
@@ -76,18 +83,30 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
     const params = new URLSearchParams();
     
     // Set query
-    params.set('query', searchParams.query || '');
+    params.set('query', searchParams.query);
     
     // Add other search parameters
-    if (searchParams.language) params.set('language', searchParams.language);
-    if (searchParams.locations?.length) params.set('locations', searchParams.locations.join(','));
-    if (searchParams.sort) params.set('sort', searchParams.sort);
-    if (searchParams.order) params.set('order', searchParams.order);
-    if (searchParams.per_page) params.set('per_page', String(searchParams.per_page));
-    if (searchParams.hireable !== undefined) params.set('hireable', String(searchParams.hireable));
+    if (searchParams.language) {
+      params.set('language', searchParams.language);
+    }
+    if (searchParams.locations?.length) {
+      params.set('locations', searchParams.locations.join(','));
+    }
+    if (searchParams.sort) {
+      params.set('sort', searchParams.sort);
+    }
+    if (searchParams.order) {
+      params.set('order', searchParams.order);
+    }
+    if (searchParams.per_page) {
+      params.set('per_page', String(searchParams.per_page));
+    }
+    if (searchParams.hireable !== undefined) {
+      params.set('hireable', String(searchParams.hireable));
+    }
 
-    // Update URL without reloading the page
-    window.history.pushState({}, '', `/search?${params.toString()}`);
+    // Update URL and trigger navigation
+    window.location.href = `/search?${params.toString()}`;
   };
 
   if (!user || recentSearches.length === 0) return null;
@@ -100,51 +119,57 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
     if (diffInSeconds < 60) return 'just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return searchDate.toLocaleDateString();
   };
 
   return (
-    <Card className="p-4 bg-background/50 backdrop-blur-sm">
-      <div className="flex items-center gap-2.5 mb-4">
-        <Clock className="w-4 h-4 text-primary/70" />
-        <h3 className="text-base font-semibold tracking-tight">Recent Searches</h3>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Clock className="h-4 w-4" />
+        <h2 className="text-sm font-medium">Recent Searches</h2>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+
+      <div className="grid gap-2">
         {recentSearches.map((search) => (
-          <Button
+          <Card
             key={search.id}
-            variant="ghost"
-            className="w-full justify-start h-auto py-2.5 px-3 hover:bg-accent/60 group transition-all duration-200 ease-in-out rounded-lg border border-border/40 hover:border-border/80"
-            onClick={() => handleExecuteSearch(search.search_params)}
+            className="p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+            onClick={() => {
+              // Ensure we have the required search parameters
+              const searchParams = {
+                ...search.search_params,
+                page: 1 // Reset page to 1 for new searches
+              };
+              handleExecuteSearch(searchParams);
+            }}
           >
-            <div className="flex flex-col w-full gap-2">
-              <div className="flex items-center gap-2 w-full">
-                <Search className="w-4 h-4 shrink-0 text-primary/70 group-hover:text-primary transition-colors" />
-                <div className="font-medium text-left truncate flex-1 group-hover:text-primary transition-colors">
-                  {search.query}
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1 flex-1">
+                <div className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="font-medium">{search.query}</span>
                 </div>
-                <ArrowRight className="w-4 h-4 shrink-0 text-primary/70 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-0 group-hover:translate-x-1" />
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5 pl-6">
-                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 h-4">
-                  <Clock className="w-3 h-3 mr-1 opacity-70" />
+                <div className="flex flex-wrap gap-2">
+                  {search.search_params.language && (
+                    <Badge variant="secondary" className="text-xs">
+                      {search.search_params.language}
+                    </Badge>
+                  )}
+                  {search.search_params.locations?.map((location) => (
+                    <Badge key={location} variant="secondary" className="text-xs">
+                      {location}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
                   {formatTimeAgo(search.created_at)}
-                </Badge>
-                {search.search_params.locations?.map((location) => (
-                  <Badge key={location} variant="outline" className="text-[10px] py-0 px-1.5 h-4">
-                    {location}
-                  </Badge>
-                ))}
-                {search.search_params.language && (
-                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 bg-primary/5">
-                    {search.search_params.language}
-                  </Badge>
-                )}
+                </p>
               </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
             </div>
-          </Button>
+          </Card>
         ))}
       </div>
-    </Card>
+    </div>
   );
 }

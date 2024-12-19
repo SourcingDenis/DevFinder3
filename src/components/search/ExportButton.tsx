@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 
 interface ExportButtonProps {
   currentUsers: GitHubUser[];
-  searchParams: Omit<UserSearchParams, 'page'> | null;
+  searchParams: UserSearchParams;
   disabled?: boolean;
 }
 
@@ -21,10 +21,9 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = React.useState(false);
+  const [exportProgress, setExportProgress] = React.useState(0);
 
   const generateFilename = React.useCallback(() => {
-    if (!searchParams) return 'github_users.csv';
-
     const parts: string[] = [];
 
     // Add query if exists
@@ -42,55 +41,58 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
       parts.push(`loc_${searchParams.locations.join('_').toLowerCase()}`);
     }
 
+    // Add timestamp for uniqueness
+    const timestamp = new Date().toISOString().split('T')[0];
+    parts.push(timestamp);
+
     // Construct filename
     return `github_users_${parts.join('_')}.csv`;
   }, [searchParams]);
 
-  const handleExport = React.useCallback(async () => {
-    if (!user) return;
+  const handleExport = async () => {
+    if (!user || !searchParams || isExporting) return;
 
     setIsExporting(true);
-    try {
-      const usersToExport = searchParams ? await fetchAllUsers(searchParams) : currentUsers;
-      
-      // Generate dynamic filename
-      const filename = generateFilename();
+    setExportProgress(0);
 
-      // Add progress tracking
-      await exportUsersToCSV(usersToExport, {
-        onProgress: (progress) => {
-          console.log(`Export progress: ${progress}%`);
-        },
-        filename // Pass filename to export function
+    try {
+      // Use the current users if less than 100, otherwise fetch all users
+      const usersToExport = currentUsers.length < 100 
+        ? currentUsers 
+        : await fetchAllUsers(searchParams);
+
+      const filename = generateFilename();
+      await exportUsersToCSV(usersToExport, { 
+        filename,
+        onProgress: setExportProgress 
       });
 
       toast({
         title: 'Export Successful',
-        description: `Exported ${usersToExport.length} users to ${filename}`,
-        variant: 'default'
+        description: `Users exported to ${filename}`,
       });
     } catch (error) {
-      console.error('Export failed', error);
+      console.error('Export error:', error);
       toast({
+        variant: 'destructive',
         title: 'Export Failed',
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: 'destructive'
+        description: error instanceof Error ? error.message : 'Failed to export users',
       });
     } finally {
       setIsExporting(false);
+      setExportProgress(0);
     }
-  }, [user, searchParams, currentUsers, toast, generateFilename]);
+  };
 
   return (
     <Button
       variant="outline"
-      size="sm"
+      size="default"
       onClick={handleExport}
-      disabled={!user || disabled || isExporting || currentUsers.length === 0}
-      className="flex items-center gap-2"
+      disabled={disabled || isExporting || !searchParams?.query}
     >
-      {isExporting ? 'Exporting...' : 'Export to CSV'}
-      <Download className="h-4 w-4" />
+      <Download className="mr-2 h-4 w-4" />
+      {isExporting ? `Exporting ${exportProgress}%` : 'Export'}
     </Button>
   );
 };
