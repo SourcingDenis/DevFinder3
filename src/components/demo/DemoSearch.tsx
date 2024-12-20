@@ -1,150 +1,190 @@
-import { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Search, Github, Star } from 'lucide-react';
-import type { GitHubUser } from '@/types';
-import axios from 'axios';
+import { motion, useScroll, useSpring } from 'framer-motion';
+import { IconRocket, IconUsers, IconCode, IconBrain, IconCircleCheck, IconCircleDot, IconCircle } from '@tabler/icons-react';
+import { useRef } from 'react';
 
-export function DemoSearch() {
-  const [query, setQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [demoResults, setDemoResults] = useState<GitHubUser[]>([]);
-  const [hasSearched, setHasSearched] = useState(false);
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-
-    setIsSearching(true);
-    try {
-      const response = await axios.get(`https://api.github.com/search/users`, {
-        params: {
-          q: query.trim(),
-          per_page: 3
-        }
-      });
-      
-      const results = response.data;
-      setDemoResults(results.items);
-      setHasSearched(true);
-    } catch (error) {
-      console.error('Demo search error:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  return (
-    <section className="container mx-auto px-4 py-12 space-y-8">
-      <div className="text-center space-y-4">
-        <h2 className="text-2xl sm:text-3xl font-bold">
-          Try DevFinder Now
-        </h2>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
-          Search for developers by name, username, or skills. This is a preview of our powerful search capabilities.
-        </p>
-      </div>
-
-      <Card className="max-w-2xl mx-auto">
-        <CardContent className="pt-6">
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <Input
-              type="text"
-              placeholder="Try searching for 'john nodejs' or 'sarah react'..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit" disabled={isSearching}>
-              {isSearching ? (
-                <Search className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-              <span className="ml-2">Search</span>
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {hasSearched && (
-        <div className="space-y-4">
-          {demoResults.length > 0 ? (
-            <>
-              <div className="grid gap-4">
-                {demoResults.map((user) => (
-                  <DemoUserCard key={user.id} user={user} />
-                ))}
-              </div>
-              <div className="text-center pt-8">
-                <p className="text-muted-foreground mb-4">
-                  Want to see more results and unlock powerful features?
-                </p>
-                <Button size="lg" className="bg-primary">
-                  Sign Up for Full Access
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No results found. Try a different search term.
-            </div>
-          )}
-        </div>
-      )}
-    </section>
-  );
+interface RoadmapItem {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  quarter: string;
+  status: 'completed' | 'current' | 'upcoming';
 }
 
-function DemoUserCard({ user }: { user: GitHubUser }) {
+const roadmapItems: RoadmapItem[] = [
+  {
+    icon: <IconRocket strokeWidth={1.5} />,
+    title: 'Launch & Core Features',
+    description: 'Basic developer search and profile viewing capabilities',
+    quarter: 'Q4 2024',
+    status: 'current'
+  },
+  {
+    icon: <IconUsers strokeWidth={1.5} />,
+    title: 'Enhanced Collaboration',
+    description: 'Team formation and project matching features',
+    quarter: 'Q1 2025',
+    status: 'upcoming'
+  },
+  {
+    icon: <IconCode strokeWidth={1.5} />,
+    title: 'Advanced Search',
+    description: 'AI-powered skill matching and recommendation system',
+    quarter: 'Q2 2025',
+    status: 'upcoming'
+  },
+  {
+    icon: <IconBrain strokeWidth={1.5} />,
+    title: 'AI Integration',
+    description: 'Intelligent developer insights and predictive analytics',
+    quarter: 'Q3 2025',
+    status: 'upcoming'
+  }
+];
+
+const getStatusIcon = (status: RoadmapItem['status']) => {
+  switch (status) {
+    case 'completed':
+      return <IconCircleCheck className="w-6 h-6" />;
+    case 'current':
+      return <IconCircleDot className="w-6 h-6" />;
+    case 'upcoming':
+      return <IconCircle className="w-6 h-6" />;
+  }
+};
+
+export function DemoSearch() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end start"]
+  });
+  
+  const progress = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-6">
-        <div className="flex items-start gap-4">
-          <img
-            src={user.avatar_url}
-            alt={`${user.login}'s avatar`}
-            className="w-16 h-16 rounded-full"
+    <section className="container mx-auto px-4 py-16" ref={containerRef}>
+      <motion.h2 
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="text-3xl sm:text-4xl font-bold text-center mb-8 sm:mb-16"
+      >
+        Development Timeline
+      </motion.h2>
+
+      {/* Mobile Timeline (vertical) */}
+      <div className="lg:hidden space-y-8">
+        {roadmapItems.map((item, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ 
+              duration: 0.5,
+              delay: index * 0.1,
+              ease: [0.21, 0.45, 0.27, 0.9]
+            }}
+            viewport={{ once: true, margin: "-100px" }}
+            className="relative flex items-start space-x-4 p-4 rounded-lg border border-border/50 hover:border-border/80 transition-colors"
+          >
+            <div className="flex-shrink-0 p-2 rounded-full bg-muted">
+              {item.icon}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold">{item.title}</h3>
+                <span className="text-sm text-muted-foreground">{item.quarter}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">{item.description}</p>
+              <div className="mt-2 text-primary/80">
+                {getStatusIcon(item.status)}
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Desktop Timeline (horizontal) */}
+      <div className="hidden lg:block relative">
+        {/* Progress line container */}
+        <div className="absolute top-12 left-0 w-full h-1 bg-gradient-to-r from-border via-border/50 to-border/20">
+          <motion.div
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60"
+            style={{ scaleX: progress, transformOrigin: "left" }}
           />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold truncate">
-                {user.name || user.login}
-              </h3>
-              {user.login && (
-                <a
-                  href={`https://github.com/${user.login}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  <Github className="h-4 w-4" />
-                </a>
-              )}
-            </div>
-            {user.bio && (
-              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                {user.bio}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-2 mt-3">
-              {user.location && (
-                <Badge variant="secondary">
-                  📍 {user.location}
-                </Badge>
-              )}
-              {user.followers > 0 && (
-                <Badge variant="secondary">
-                  <Star className="h-3 w-3 mr-1" />
-                  {user.followers} followers
-                </Badge>
-              )}
-            </div>
-          </div>
         </div>
-      </CardContent>
-    </Card>
+
+        <div className="grid grid-cols-4 gap-12">
+          {roadmapItems.map((item, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ 
+                duration: 0.5,
+                delay: index * 0.1,
+                ease: [0.21, 0.45, 0.27, 0.9]
+              }}
+              viewport={{ once: true, margin: "-100px" }}
+              className="relative"
+            >
+              {/* Status indicator */}
+              <motion.div 
+                className={`absolute top-[44px] left-1/2 -translate-x-1/2 text-primary
+                  ${item.status === 'current' ? 'text-primary' : 
+                    item.status === 'completed' ? 'text-primary/80' : 'text-primary/40'}`}
+                initial={{ scale: 0, rotate: -45 }}
+                whileInView={{ scale: 1, rotate: 0 }}
+                transition={{ 
+                  duration: 0.4,
+                  delay: index * 0.1 + 0.2,
+                  type: "spring"
+                }}
+              >
+                {getStatusIcon(item.status)}
+              </motion.div>
+              
+              <div className="pt-24 group">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className={`space-y-4 ${item.status === 'current' ? 'relative' : ''}`}
+                >
+                  {item.status === 'current' && (
+                    <motion.div 
+                      className="absolute -inset-4 rounded-lg bg-primary/5"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  )}
+                  <div className={`text-primary transition-opacity
+                    ${item.status === 'current' ? 'opacity-100' : 
+                      item.status === 'completed' ? 'opacity-80' : 'opacity-40'}`}>
+                    {item.icon}
+                  </div>
+                  <div className="relative">
+                    <div className="text-sm text-muted-foreground mb-1">
+                      {item.quarter}
+                    </div>
+                    <h3 className={`font-medium text-lg mb-2 transition-colors
+                      ${item.status === 'current' ? 'text-primary' : ''}`}>
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {item.description}
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }

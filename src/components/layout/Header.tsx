@@ -50,15 +50,6 @@ export function Header() {
       >
         Saved Profiles
       </Link>
-      <Link
-        to="/saved-searches"
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-foreground/80",
-          isActive('/saved-searches') ? "text-foreground" : "text-foreground/60"
-        )}
-      >
-        Saved Searches
-      </Link>
     </>
   );
 
@@ -89,20 +80,6 @@ export function Header() {
             <nav className="flex-1 hidden md:flex items-center gap-6">
               <NavLinks />
             </nav>
-          )}
-
-          {!user && (
-            <Link
-              to="/roadmap"
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-foreground/80",
-                isActive('/roadmap') ? "text-foreground" : "text-foreground/60"
-              )}
-            >
-              <div className="flex items-center gap-2">
-                Roadmap
-              </div>
-            </Link>
           )}
         </div>
 

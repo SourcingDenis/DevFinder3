@@ -45,7 +45,7 @@ const AppContent = memo(() => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 w-full container max-w-screen-2xl mx-auto px-4 py-6">
+      <main className="flex-1 w-full container max-w-screen-2xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <Routes>
           <Route path="/" element={user ? <Navigate to="/home" replace /> : <Home />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
@@ -57,7 +57,7 @@ const AppContent = memo(() => {
           <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
         </Routes>
       </main>
-      <footer className="w-full bg-muted text-muted-foreground text-center py-4 text-sm">
+      <footer className="w-full bg-muted text-muted-foreground text-center py-3 sm:py-4 text-xs sm:text-sm">
         &copy; 2024 Built by <a href="https://sourcingdenis.live" target="_blank" rel="noopener noreferrer" className="hover:underline">@sourcingdenis</a>
       </footer>
     </div>
