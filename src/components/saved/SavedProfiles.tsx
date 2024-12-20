@@ -71,7 +71,8 @@ export function SavedProfiles() {
       const query = supabase
         .from('saved_profiles')
         .select('id, user_id, username, github_data, list_id, created_at, updated_at')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (selectedListId !== null) {
         // If a specific list is selected, filter by that list
