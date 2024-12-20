@@ -66,8 +66,8 @@ export function Home() {
           </CardHeader>
           <CardFooter className="mt-auto">
             <Button asChild variant="outline" className="w-full group">
-              <Link to="/bookmarks">
-                View Bookmarks
+              <Link to="/saved-profiles">
+                View Saved Profiles
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
