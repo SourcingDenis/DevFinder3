@@ -23,9 +23,6 @@ export function DemoSearch() {
         params: {
           q: query.trim(),
           per_page: 3
-        },
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_GITHUB_TOKEN}`
         }
       });
       
