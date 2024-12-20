@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, Github, Star } from 'lucide-react';
 import type { GitHubUser } from '@/types';
-import { searchUsers } from '@/lib/github-api';
+import axios from 'axios';
 
 export function DemoSearch() {
   const [query, setQuery] = useState('');
@@ -19,11 +19,17 @@ export function DemoSearch() {
 
     setIsSearching(true);
     try {
-      const results = await searchUsers({ 
-        query: query.trim(),
-        page: 1,
-        per_page: 3 // Limit to 3 results
+      const response = await axios.get(`https://api.github.com/search/users`, {
+        params: {
+          q: query.trim(),
+          per_page: 3
+        },
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_GITHUB_TOKEN}`
+        }
       });
+      
+      const results = response.data;
       setDemoResults(results.items);
       setHasSearched(true);
     } catch (error) {

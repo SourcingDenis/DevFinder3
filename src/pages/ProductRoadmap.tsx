@@ -1,5 +1,3 @@
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/components/auth/AuthProvider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Timeline, TimelineContent, TimelineItem, TimelinePoint, TimelineSeparator } from '@/components/ui/timeline';
@@ -8,59 +6,69 @@ import { cn } from '@/lib/utils';
 // Define roadmap milestones with more detailed status
 const roadmapMilestones = [
   {
-    phase: 'Alpha Launch',
-    description: 'Initial DevFinder platform with core profile matching capabilities',
+    phase: 'Core Search Features',
+    description: 'Essential GitHub developer search capabilities',
     status: 'completed',
-    timeline: 'Q1 2024',
-    features: [
-      'Basic profile search',
-      'Initial matching algorithm',
-      'User registration'
-    ]
-  },
-  {
-    phase: 'Beta Enhancement',
-    description: 'Advanced search and recommendation improvements',
-    status: 'in-progress',
-    timeline: 'Q2 2024',
-    features: [
-      'AI-powered matching',
-      'Advanced search filters',
-      'Performance optimizations'
-    ]
-  },
-  {
-    phase: 'MVP Release',
-    description: 'Full platform capabilities with comprehensive features',
-    status: 'planned',
-    timeline: 'Q3 2024',
-    features: [
-      'Enterprise team matching',
-      'Advanced analytics',
-      'Integration capabilities'
-    ]
-  },
-  {
-    phase: 'Enterprise Expansion',
-    description: 'Advanced organizational recruitment tools',
-    status: 'future',
     timeline: 'Q4 2024',
     features: [
-      'Custom organizational dashboards',
-      'Advanced talent pooling',
-      'Global talent network'
+      'GitHub user search API integration',
+      'Email extraction from public commits',
+      'Export search results as CSV',
+      'Save profiles and create custom lists',
+      'Save searches for later use'
+    ]
+  },
+  {
+    phase: 'Email Integration',
+    description: 'Enhanced email capabilities with Gmail integration',
+    status: 'in-progress',
+    timeline: 'Q1 2025',
+    features: [
+      'Gmail API integration',
+      'Email template management',
+      'Email tracking and analytics',
+      'Bulk email campaigns'
+    ]
+  },
+  {
+    phase: 'Talent Insights',
+    description: 'Advanced analytics and geographical insights',
+    status: 'planned',
+    timeline: 'Q1 2025',
+    features: [
+      'Developer distribution by country',
+      'Technology adoption trends',
+      'Salary insights by region',
+      'Talent pool analysis'
+    ]
+  },
+  {
+    phase: 'AI-Powered Features',
+    description: 'Intelligent outreach and developer analysis',
+    status: 'planned',
+    timeline: 'Q2 2025',
+    features: [
+      'AI-generated personalized outreach messages',
+      'Developer skill analysis',
+      'Project contribution insights',
+      'Technology stack recommendations'
+    ]
+  },
+  {
+    phase: 'Pipeline Management',
+    description: 'Advanced recruitment pipeline features',
+    status: 'future',
+    timeline: 'Q2 2025',
+    features: [
+      'Kanban-style pipeline management',
+      'Status tracking and updates',
+      'Team collaboration tools',
+      'Recruitment analytics dashboard'
     ]
   }
 ];
 
 export function ProductRoadmap() {
-  const { user } = useAuth();
-
-  // Redirect non-authenticated users
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
   return (
     <div className="space-y-8">
       <div className="text-center mb-12">
