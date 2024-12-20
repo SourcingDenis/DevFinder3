@@ -116,67 +116,62 @@ const getGithubApi = async () => {
       throw new Error('Failed to get session');
     }
 
-    if (!session) {
+    if (!session?.user) {
       console.error('No session found');
-      throw new Error('No active session found');
+      throw new Error('Please sign in with GitHub to use the search functionality');
     }
 
     console.log('Session found, checking provider token...');
     let token = session.provider_token;
+    let tokenExpiration: Date | null = null;
 
     if (!token) {
       console.log('No provider token, checking stored token...');
-      // Try to get token from database
       const storedToken = await getStoredToken();
       
       if (storedToken) {
         console.log('Found stored token, checking expiration...');
-        const expiresAt = new Date(storedToken.expires_at);
-        if (expiresAt > new Date()) {
+        tokenExpiration = new Date(storedToken.expires_at);
+        
+        if (tokenExpiration > new Date()) {
           console.log('Using stored token');
           token = storedToken.access_token;
-        } else {
-          console.log('Stored token expired, refreshing session...');
-          // Token expired, try to refresh session
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          
-          if (refreshError || !refreshData.session?.provider_token) {
-            console.error('Refresh error:', refreshError);
-            throw new Error('Please sign in with GitHub to use the search functionality');
-          }
-
-          token = refreshData.session.provider_token;
-          console.log('Session refreshed, updating stored token...');
-          
-          // Update stored token
-          await supabase
-            .from('user_tokens')
-            .upsert({
-              user_id: session.user.id,
-              provider: 'github',
-              access_token: token,
-              refresh_token: refreshData.session.provider_refresh_token || null,
-              expires_at: new Date(Date.now() + 55 * 60 * 1000).toISOString(), // 55 minutes from now
-            }, {
-              onConflict: 'user_id,provider'
-            });
         }
-      } else {
-        console.log('No stored token, refreshing session...');
-        // No stored token, try to refresh session
+      }
+      
+      if (!token || (tokenExpiration && tokenExpiration <= new Date())) {
+        console.log('Token expired or not found, refreshing session...');
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         
-        if (refreshError || !refreshData.session?.provider_token) {
-          console.error('Refresh error:', refreshError);
-          throw new Error('Please sign in with GitHub to use the search functionality');
+        if (refreshError) {
+          console.error('Session refresh error:', refreshError);
+          throw new Error('Failed to refresh session. Please sign in again.');
+        }
+
+        if (!refreshData.session?.provider_token) {
+          console.error('No provider token after refresh');
+          throw new Error('GitHub authentication required. Please sign in again.');
         }
 
         token = refreshData.session.provider_token;
+        
+        // Store the refreshed token
+        const expiresAt = new Date(Date.now() + 55 * 60 * 1000); // 55 minutes from now
+        await supabase
+          .from('user_tokens')
+          .upsert({
+            user_id: session.user.id,
+            provider: 'github',
+            access_token: token,
+            refresh_token: refreshData.session.provider_refresh_token || null,
+            expires_at: expiresAt.toISOString(),
+          }, {
+            onConflict: 'user_id,provider'
+          });
       }
     }
 
     if (!token) {
-      console.error('No valid token found after all attempts');
       throw new Error('Unable to obtain GitHub token');
     }
 
