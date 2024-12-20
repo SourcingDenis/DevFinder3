@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Search, BookmarkCheck, History } from 'lucide-react';
 import { Hero } from '@/components/layout/Hero';
 import { FAQ } from '@/components/faq/FAQ';
+import { ActivityFeed } from '@/components/activity/ActivityFeed';
 
 export function Home() {
   const { user } = useAuth();
@@ -93,6 +94,11 @@ export function Home() {
             </Button>
           </CardFooter>
         </Card>
+      </div>
+
+      {/* Activity Feed Section */}
+      <div className="mt-8">
+        <ActivityFeed />
       </div>
     </div>
   );
