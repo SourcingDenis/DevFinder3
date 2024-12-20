@@ -6,6 +6,7 @@ import { ArrowRight, Search, BookmarkCheck, History } from 'lucide-react';
 import { Hero } from '@/components/layout/Hero';
 import { FAQ } from '@/components/faq/FAQ';
 import { ActivityFeed } from '@/components/activity/ActivityFeed';
+import { DemoSearch } from '@/components/demo/DemoSearch';
 
 export function Home() {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export function Home() {
     return (
       <div className="space-y-12">
         <Hero />
+        <DemoSearch />
         <FAQ />
       </div>
     );
