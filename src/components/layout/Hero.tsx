@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { LoggedInHero } from "./LoggedInHero";
+import { ContributionParticles } from "../hero/ContributionParticles";
 
 export function Hero() {
   const { user } = useAuth();
@@ -12,7 +13,8 @@ export function Hero() {
     <div className="container mx-auto px-4 py-8 sm:py-16 text-center 
       bg-gradient-to-br from-primary/20 via-background to-primary/10
       dark:from-primary/30 dark:via-background/90 dark:to-primary/20
-      rounded-2xl">
+      rounded-2xl relative overflow-hidden">
+      <ContributionParticles />
       <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
         DevFinder: Revolutionize Your GitHub User Search
       </h1>

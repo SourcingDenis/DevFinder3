@@ -185,20 +185,35 @@ export function SearchContainer({ onSearch }: SearchContainerProps) {
     // Save the recent search if user is authenticated
     if (user) {
       try {
-        const { error } = await supabase
+        console.log('Saving recent search:', {
+          user_id: user.id,
+          query: params.query,
+          search_params: params
+        });
+
+        const { data, error } = await supabase
           .from('recent_searches')
           .insert({
             user_id: user.id,
             query: params.query,
             search_params: params
-          });
+          })
+          .select()
+          .single();
 
         if (error) {
-          console.error('Error saving recent search:', error);
+          console.error('Error saving recent search:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
           // Only show error toast for non-RLS policy violations
           if (!error.message.includes('policy')) {
             toast.error('Failed to save recent search');
           }
+        } else {
+          console.log('Successfully saved recent search:', data);
         }
       } catch (err) {
         console.error('Failed to save recent search:', err);

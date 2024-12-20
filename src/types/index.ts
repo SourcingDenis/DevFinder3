@@ -61,3 +61,5 @@ export interface SavedProfile {
   updated_at?: string;
   list_id?: number;
 }
+
+export * from './activity';
