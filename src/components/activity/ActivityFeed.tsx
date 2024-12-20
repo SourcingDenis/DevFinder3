@@ -8,6 +8,7 @@ import type { ActivityItem } from '@/types/activity';
 import type { RecentSearch } from '@/types/search';
 import type { SavedProfile } from '@/types';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export function ActivityFeed() {
   const { user } = useAuth();
@@ -16,9 +17,14 @@ export function ActivityFeed() {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchActivities = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('ActivityFeed: No user found');
+      return;
+    }
     
     try {
+      console.log('ActivityFeed: Fetching activities for user', user.id);
+      
       // Fetch recent searches
       const { data: searches, error: searchError } = await supabase
         .from('recent_searches')
@@ -27,17 +33,27 @@ export function ActivityFeed() {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (searchError) throw searchError;
+      if (searchError) {
+        console.error('ActivityFeed: Error fetching searches:', searchError);
+        throw searchError;
+      }
+
+      console.log('ActivityFeed: Found searches:', searches?.length || 0);
 
       // Fetch saved profiles
       const { data: profiles, error: profileError } = await supabase
         .from('saved_profiles')
-        .select('*')
+        .select('*, github_data')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('ActivityFeed: Error fetching profiles:', profileError);
+        throw profileError;
+      }
+
+      console.log('ActivityFeed: Found profiles:', profiles?.length || 0);
 
       // Combine and sort activities
       const searchActivities: ActivityItem[] = (searches || []).map((search: RecentSearch) => ({
@@ -51,7 +67,7 @@ export function ActivityFeed() {
       }));
 
       const saveActivities: ActivityItem[] = (profiles || []).map((profile: SavedProfile) => ({
-        id: profile.id,
+        id: profile.id.toString(),
         type: 'save',
         timestamp: profile.created_at,
         data: {
@@ -68,9 +84,11 @@ export function ActivityFeed() {
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 10);
 
+      console.log('ActivityFeed: Combined activities:', allActivities.length);
       setActivities(allActivities);
     } catch (error) {
-      console.error('Error fetching activities:', error);
+      console.error('ActivityFeed: Error:', error);
+      toast.error('Failed to load activity feed');
     } finally {
       setIsLoading(false);
     }
@@ -120,7 +138,31 @@ export function ActivityFeed() {
     }
   };
 
-  if (!user || activities.length === 0) return null;
+  if (!user) {
+    console.log('ActivityFeed: No user, returning null');
+    return null;
+  }
+
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="text-lg">Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-4">
+            <Search className="h-4 w-4 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-sm text-muted-foreground">Loading activities...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (activities.length === 0) {
+    console.log('ActivityFeed: No activities, returning null');
+    return null;
+  }
 
   return (
     <Card className="w-full">
