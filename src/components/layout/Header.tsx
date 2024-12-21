@@ -59,19 +59,16 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 md:gap-6">
           <Link 
             to="/home"
-            className="flex items-center gap-3 hover:opacity-90 transition-all duration-200 cursor-pointer group"
+            className="flex items-center gap-2 md:gap-3 hover:opacity-90 transition-all duration-200 cursor-pointer group"
             onClick={handleLogoClick}
           >
-            <Code2 className="h-6 w-6 text-primary group-hover:rotate-12 transition-transform duration-200" />
-            <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent hidden md:block">
-              DevFinder
-            </span>
-            <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent md:hidden">
+            <Code2 className="h-5 w-5 md:h-6 md:w-6 text-primary group-hover:rotate-12 transition-transform duration-200" />
+            <span className="font-bold text-lg md:text-xl tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               DevFinder
             </span>
           </Link>
@@ -83,52 +80,60 @@ export function Header() {
           )}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <ThemeToggle />
           {!user && <GitHubLoginButton />}
-          <div className="hidden md:flex items-center gap-4">
-            {user && (
+          {user && (
+            <>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate('/settings')}
-                className="rounded-full"
+                className="rounded-full hidden md:flex"
               >
                 <Settings className="h-5 w-5" />
                 <span className="sr-only">Settings</span>
               </Button>
-            )}
-          </div>
-
-          {/* Mobile Menu */}
-          {user && (
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                <SheetHeader>
-                  <SheetTitle></SheetTitle>
-                </SheetHeader>
-                <nav className="flex flex-col gap-4 mt-8">
-                  <NavLinks />
-                  <div className="flex items-center gap-4 mt-4 md:hidden">
-                    <Button
-                      variant="ghost"
-                      size="default"
-                      onClick={handleSignOut}
-                      className="w-full justify-start"
-                    >
-                      <LogOut className="h-5 w-5 mr-2" />
-                      Sign Out
-                    </Button>
+              
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                  <SheetHeader>
+                    <SheetTitle className="text-left">Menu</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex flex-col gap-6 mt-6">
+                    <nav className="flex flex-col gap-4">
+                      <NavLinks />
+                    </nav>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="ghost"
+                        size="default"
+                        onClick={() => navigate('/settings')}
+                        className="w-full justify-start"
+                      >
+                        <Settings className="h-5 w-5 mr-2" />
+                        Settings
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="default"
+                        onClick={handleSignOut}
+                        className="w-full justify-start text-destructive hover:text-destructive"
+                      >
+                        <LogOut className="h-5 w-5 mr-2" />
+                        Sign Out
+                      </Button>
+                    </div>
                   </div>
-                </nav>
-              </SheetContent>
-            </Sheet>
+                </SheetContent>
+              </Sheet>
+            </>
           )}
         </div>
       </div>
