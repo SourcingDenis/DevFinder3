@@ -13,6 +13,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getLanguageConfig } from '@/utils/language-utils';
 
 // Extend GitHubUser interface to include source and confidence
 interface ExtendedGitHubUser extends GitHubUser {
@@ -110,8 +111,8 @@ export const UserCard = forwardRef<HTMLDivElement, UserCardProps & { isSaved?: b
                   </Badge>
                 )}
                 {user.topLanguage && (
-                  <Badge variant="secondary" className="bg-violet-100 text-violet-800">
-                    <LinkIcon className="h-3 w-3 mr-1" />
+                  <Badge variant="secondary" className={`${getLanguageConfig(user.topLanguage).color.bg} ${getLanguageConfig(user.topLanguage).color.text}`}>
+                    {React.createElement(getLanguageConfig(user.topLanguage).icon, { className: "h-3 w-3 mr-1" })}
                     {user.topLanguage}
                   </Badge>
                 )}
