@@ -50,6 +50,15 @@ export function Header() {
       >
         Saved Profiles
       </Link>
+      <Link
+        to="/saved-searches"
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-foreground/80",
+          isActive('/saved-searches') ? "text-foreground" : "text-foreground/60"
+        )}
+      >
+        Saved Searches
+      </Link>
     </>
   );
 
