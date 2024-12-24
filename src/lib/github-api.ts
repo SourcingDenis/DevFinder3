@@ -141,33 +141,58 @@ const getGithubApi = async () => {
       
       if (!token || (tokenExpiration && tokenExpiration <= new Date())) {
         console.log('Token expired or not found, refreshing session...');
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        
-        if (refreshError) {
-          console.error('Session refresh error:', refreshError);
-          throw new Error('Failed to refresh session. Please sign in again.');
-        }
+        try {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError) {
+            console.error('Session refresh error:', refreshError);
+            throw new Error('Failed to refresh session. Please sign in again.');
+          }
 
-        if (!refreshData.session?.provider_token) {
-          console.error('No provider token after refresh');
-          throw new Error('GitHub authentication required. Please sign in again.');
-        }
+          if (!refreshData.session) {
+            console.error('No session after refresh');
+            throw new Error('Session refresh failed. Please sign in again.');
+          }
 
-        token = refreshData.session.provider_token;
-        
-        // Store the refreshed token
-        const expiresAt = new Date(Date.now() + 55 * 60 * 1000); // 55 minutes from now
-        await supabase
-          .from('user_tokens')
-          .upsert({
-            user_id: session.user.id,
-            provider: 'github',
-            access_token: token,
-            refresh_token: refreshData.session.provider_refresh_token || null,
-            expires_at: expiresAt.toISOString(),
-          }, {
-            onConflict: 'user_id,provider'
-          });
+          if (!refreshData.session.provider_token) {
+            console.error('No provider token after refresh');
+            // Trigger re-authentication
+            const { error: signInError } = await supabase.auth.signInWithOAuth({
+              provider: 'github',
+              options: {
+                redirectTo: `${window.location.origin}/auth/callback`,
+                scopes: 'read:user read:email'
+              }
+            });
+
+            if (signInError) {
+              throw new Error('Failed to re-authenticate with GitHub. Please sign in again.');
+            }
+            
+            throw new Error('GitHub authentication required. Please complete the sign-in process.');
+          }
+
+          token = refreshData.session.provider_token;
+          
+          // Store the refreshed token
+          const expiresAt = new Date(Date.now() + 55 * 60 * 1000); // 55 minutes from now
+          await supabase
+            .from('user_tokens')
+            .upsert({
+              user_id: session.user.id,
+              provider: 'github',
+              access_token: token,
+              refresh_token: refreshData.session.provider_refresh_token || null,
+              expires_at: expiresAt.toISOString(),
+            }, {
+              onConflict: 'user_id,provider'
+            });
+        } catch (error) {
+          if (error instanceof Error) {
+            throw error;
+          }
+          throw new Error('Failed to refresh GitHub token. Please sign in again.');
+        }
       }
     }
 
@@ -201,76 +226,67 @@ const getGithubApi = async () => {
       },
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          // Token expired or invalid, try to refresh and get new token
+          // Token expired or invalid, try to refresh
           try {
-            // First try refreshing the session
             const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
             
-            if (!refreshError && refreshData.session?.provider_token) {
-              // Update stored token
-              await supabase
-                .from('user_tokens')
-                .upsert({
-                  user_id: refreshData.session.user.id,
-                  provider: 'github',
-                  access_token: refreshData.session.provider_token,
-                  refresh_token: refreshData.session.provider_refresh_token || null,
-                  expires_at: new Date(Date.now() + 55 * 60 * 1000).toISOString(),
-                }, {
-                  onConflict: 'user_id,provider'
-                });
-
-              // Retry the request with new token
-              const originalRequest = error.config as AxiosRequestConfig;
-              if (originalRequest.headers) {
-                originalRequest.headers['Authorization'] = `Bearer ${refreshData.session.provider_token}`;
-              }
-              return axios(originalRequest);
+            if (refreshError || !refreshData.session?.provider_token) {
+              throw new Error('Failed to refresh GitHub token');
             }
 
-            // If session refresh failed, try getting token from database
+            // Update stored token
+            await supabase
+              .from('user_tokens')
+              .upsert({
+                user_id: refreshData.session.user.id,
+                provider: 'github',
+                access_token: refreshData.session.provider_token,
+                refresh_token: refreshData.session.provider_refresh_token || null,
+                expires_at: new Date(Date.now() + 55 * 60 * 1000).toISOString(),
+              }, {
+                onConflict: 'user_id,provider'
+              });
+
+            // Retry the request with new token
+            const originalRequest = error.config as AxiosRequestConfig;
+            if (!originalRequest) {
+              throw new Error('No request config available for retry');
+            }
+
+            if (originalRequest.headers) {
+              originalRequest.headers['Authorization'] = `Bearer ${refreshData.session.provider_token}`;
+            }
+            return axios(originalRequest);
+          } catch (refreshError) {
+            // If refresh fails, try stored token as last resort
             const storedToken = await getStoredToken();
             if (storedToken && new Date(storedToken.expires_at) > new Date()) {
               const originalRequest = error.config as AxiosRequestConfig;
+              if (!originalRequest) {
+                throw new Error('No request config available for retry');
+              }
+
               if (originalRequest.headers) {
                 originalRequest.headers['Authorization'] = `Bearer ${storedToken.access_token}`;
               }
               return axios(originalRequest);
             }
-
-            // If all attempts fail, ask user to sign in again
-            throw new Error('Session expired. Please sign in again.');
-          } catch (refreshError) {
-            console.error('Failed to refresh token:', refreshError);
-            await supabase.auth.signOut();
-            window.location.href = '/';
-            throw new Error('Session expired. Please sign in again.');
+            
+            // If all retries fail, throw authentication error
+            throw new Error('GitHub authentication required. Please sign in again.');
           }
         }
-
-        if (error.response?.status === 403) {
-          const resetTime = parseInt(error.response.headers['x-ratelimit-reset'] || '0');
-          if (error.response.headers['x-ratelimit-remaining'] === '0') {
-            throw new Error(formatRateLimitError(resetTime, 0, rateLimitCache.total));
-          }
-          
-          // Handle secondary rate limit with exponential backoff
-          const retryAfter = parseInt(error.response.headers['retry-after'] || '60');
-          const delay = Math.min(retryAfter * 1000, 60000); // Cap at 1 minute
-          await new Promise(resolve => setTimeout(resolve, delay));
-          
-          const originalRequest = error.config as AxiosRequestConfig;
-          return axios(originalRequest);
-        }
-
-        return Promise.reject(error);
+        throw error;
       }
     );
 
     return api;
   } catch (error) {
     console.error('Error in getGithubApi:', error);
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to initialize GitHub API client');
   }
 };
 
