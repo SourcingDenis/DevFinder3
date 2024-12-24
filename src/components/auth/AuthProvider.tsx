@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-toastify';
+import { scheduleTokenRefresh, clearTokenRefresh } from '@/lib/token-refresh';
 
 interface AuthContextType {
   user: User | null;
@@ -44,7 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function initializeAuth() {
       try {
-        // Get initial session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -53,10 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (mounted) {
           setUser(session?.user ?? null);
+          if (session?.user) {
+            await scheduleTokenRefresh(session.user.id);
+          }
           setLoading(false);
         }
 
-        // Listen for auth changes
         const {
           data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -68,6 +70,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (mounted) {
             setUser(session?.user ?? null);
+            if (session?.user) {
+              await scheduleTokenRefresh(session.user.id);
+            } else {
+              clearTokenRefresh(session?.user?.id ?? '');
+            }
             setLoading(false);
           }
         });
@@ -75,6 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => {
           mounted = false;
           subscription.unsubscribe();
+          if (session?.user) {
+            clearTokenRefresh(session.user.id);
+          }
         };
       } catch (err) {
         console.error('Auth error:', err);
