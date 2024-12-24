@@ -142,7 +142,7 @@ export function ActivityFeed() {
 
   const handleActivityClick = (activity: Activity) => {
     if (isSearchActivity(activity)) {
-      navigate(`/search?q=${encodeURIComponent(activity.data.query)}`);
+      navigate(`/search?query=${encodeURIComponent(activity.data.query)}`);
     } else if (isSaveActivity(activity)) {
       navigate(`/saved-profiles`);
     }
