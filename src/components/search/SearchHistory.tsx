@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Search, ArrowRight } from 'lucide-react';
 import type { UserSearchParams, RecentSearch } from '@/types/search';
 import { toast } from 'react-toastify';
-import { useSearchParams } from 'react-router-dom';
 
 interface SearchHistoryProps {
   onSearch?: (params: Partial<UserSearchParams>) => void;
@@ -14,7 +13,6 @@ interface SearchHistoryProps {
 
 export function SearchHistory({ onSearch }: SearchHistoryProps) {
   const { user } = useAuth();
-  const [, setSearchParams] = useSearchParams();
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
 
   useEffect(() => {
@@ -84,7 +82,7 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
     // Prepare URL search parameters
     const params = new URLSearchParams();
     
-    // Set query
+    // Set query parameter (using 'query' instead of 'q')
     params.set('query', searchParams.query);
     
     // Add other search parameters
@@ -107,8 +105,8 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
       params.set('hireable', String(searchParams.hireable));
     }
 
-    // Use setSearchParams to update URL and trigger search
-    setSearchParams(params);
+    // Redirect to production URL
+    window.location.href = `https://devfinder.co/search?${params.toString()}`;
   };
 
   if (!user || recentSearches.length === 0) return null;
