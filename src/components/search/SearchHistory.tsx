@@ -14,7 +14,7 @@ interface SearchHistoryProps {
 
 export function SearchHistory({ onSearch }: SearchHistoryProps) {
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [, setSearchParams] = useSearchParams();
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
 
   useEffect(() => {
