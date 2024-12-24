@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Search, ArrowRight } from 'lucide-react';
 import type { UserSearchParams, RecentSearch } from '@/types/search';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 interface SearchHistoryProps {
   onSearch?: (params: Partial<UserSearchParams>) => void;
@@ -13,6 +14,7 @@ interface SearchHistoryProps {
 
 export function SearchHistory({ onSearch }: SearchHistoryProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
 
   useEffect(() => {
@@ -105,8 +107,8 @@ export function SearchHistory({ onSearch }: SearchHistoryProps) {
       params.set('hireable', String(searchParams.hireable));
     }
 
-    // Update URL and trigger navigation
-    window.location.href = `/search?${params.toString()}`;
+    // Use React Router's navigate instead of window.location
+    navigate(`/search?${params.toString()}`);
   };
 
   if (!user || recentSearches.length === 0) return null;
